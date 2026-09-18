@@ -1,0 +1,59 @@
+databases:
+  - name: creditfast-db
+    plan: free
+    region: frankfurt
+    databaseName: creditfast
+    user: creditfast
+
+services:
+  - type: web
+    name: creditfast-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: CreditFast
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_STACK
+        value: single
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: creditfast-db
+          property: connectionString
+      - key: L5_SWAGGER_GENERATE_ALWAYS
+        value: "false"
+      - key: L5_SWAGGER_USE_ABSOLUTE_PATH
+        value: "false"
+      - key: L5_SWAGGER_UI_DOC_EXPANSION
+        value: list
+      - key: L5_SWAGGER_UI_PERSIST_AUTHORIZATION
+        value: "true"
+      - key: STAFF_ADMIN_EMAIL
+        value: admin@creditfast.ml
+      - key: STAFF_AGENT_EMAIL
+        value: agent@creditfast.ml
+      - key: STAFF_ANALYST_EMAIL
+        value: analyste@creditfast.ml
+      - key: STAFF_COMMITTEE_EMAIL
+        value: comite@creditfast.ml
+      - key: STAFF_BOOTSTRAP_PASSWORD
+        sync: false
