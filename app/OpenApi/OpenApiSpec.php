@@ -27,7 +27,7 @@ API de microcrédit CreditFast (Laravel Sanctum).
 
 Dans Swagger UI, cliquer **Authorize** et coller le token (sans le préfixe `Bearer`).
 
-**Token Sanctum :** renvoyé dans `token` à l’inscription ou à la connexion. L’envoyer ensuite en en-tête `Authorization: Bearer {token}`. Il n’expire pas tout seul ; il est révoqué au logout, au changement / reset de mot de passe (autres sessions), ou si le compte est désactivé.
+**Token Sanctum :** renvoyé dans `token` à l’inscription ou à la connexion. L’envoyer ensuite en en-tête `Authorization: Bearer {token}`.
 
 **Énumérations :** dans Swagger UI, les champs concernés apparaissent en **liste déroulante**. Chaque valeur est expliquée dans le schéma (section Schemas). Les plus utilisées :
 
