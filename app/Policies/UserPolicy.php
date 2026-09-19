@@ -36,4 +36,9 @@ class UserPolicy
     {
         return $user->hasRole(RoleName::Admin) && $user->id !== $model->id;
     }
+
+    public function viewProfilePhoto(User $user, User $model): bool
+    {
+        return $user->id === $model->id || $user->isStaff();
+    }
 }

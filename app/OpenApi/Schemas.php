@@ -42,13 +42,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'full_name', type: 'string', example: 'Mah SANOGO'),
         new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, example: 'mahsanogo12@gmail.com'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+22377000016'),
-        new OA\Property(property: 'status', type: 'string', example: 'active'),
-        new OA\Property(
-            property: 'role',
-            type: 'string',
-            enum: ['client', 'credit_agent', 'analyst', 'committee_member', 'admin'],
-            example: 'client'
-        ),
+        new OA\Property(property: 'status', ref: '#/components/schemas/UserStatus'),
+        new OA\Property(property: 'role', ref: '#/components/schemas/RoleName'),
+        new OA\Property(property: 'profile_photo_url', type: 'string', format: 'uri', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
     ]
 )]
@@ -121,10 +117,19 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'client_number', type: 'string', example: 'CLI-000001'),
-        new OA\Property(property: 'kyc_status', type: 'string', enum: ['PENDING', 'VERIFIED', 'REJECTED']),
+        new OA\Property(property: 'kyc_status', ref: '#/components/schemas/KycStatus'),
         new OA\Property(property: 'city', type: 'string', nullable: true),
         new OA\Property(property: 'residential_zone', type: 'string', nullable: true),
         new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'KycDocument',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'document_type', ref: '#/components/schemas/KycDocumentType'),
+        new OA\Property(property: 'document_number', type: 'string', nullable: true),
+        new OA\Property(property: 'status', ref: '#/components/schemas/KycStatus'),
     ]
 )]
 #[OA\Schema(
@@ -164,7 +169,7 @@ use OpenApi\Attributes as OA;
     schema: 'GuaranteeInput',
     required: ['guarantee_type', 'declared_value'],
     properties: [
-        new OA\Property(property: 'guarantee_type', type: 'string', example: 'MATERIEL'),
+        new OA\Property(property: 'guarantee_type', ref: '#/components/schemas/GuaranteeType'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Motocyclette'),
         new OA\Property(property: 'declared_value', type: 'number', format: 'float', example: 400000),
     ]
@@ -201,8 +206,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'requested_amount', type: 'number', format: 'float'),
         new OA\Property(property: 'duration_months', type: 'integer'),
         new OA\Property(property: 'purpose', type: 'string'),
-        new OA\Property(property: 'status', type: 'string', example: 'SUBMITTED'),
-        new OA\Property(property: 'repayment_capacity_status', type: 'string', example: 'SUFFICIENT'),
+        new OA\Property(property: 'status', ref: '#/components/schemas/CreditRequestStatus'),
+        new OA\Property(property: 'repayment_capacity_status', ref: '#/components/schemas/RepaymentCapacityStatus'),
         new OA\Property(property: 'estimated_monthly_payment', type: 'number', format: 'float'),
         new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
@@ -221,10 +226,10 @@ use OpenApi\Attributes as OA;
     schema: 'Document',
     properties: [
         new OA\Property(property: 'id', type: 'integer'),
-        new OA\Property(property: 'document_type', type: 'string', example: 'JUSTIFICATIF_DOMICILE'),
+        new OA\Property(property: 'document_type', ref: '#/components/schemas/CreditDocumentType'),
         new OA\Property(property: 'original_filename', type: 'string'),
         new OA\Property(property: 'mime_type', type: 'string'),
-        new OA\Property(property: 'status', type: 'string'),
+        new OA\Property(property: 'status', type: 'string', example: 'UPLOADED'),
         new OA\Property(property: 'uploaded_at', type: 'string', format: 'date-time'),
     ]
 )]
@@ -242,7 +247,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'disbursed_at', type: 'string', format: 'date', nullable: true),
         new OA\Property(property: 'funds_received', type: 'number', format: 'float', description: 'Montant mis à disposition (0 tant que non décaissé)'),
         new OA\Property(property: 'outstanding_amount', type: 'number', format: 'float'),
-        new OA\Property(property: 'status', type: 'string', enum: ['APPROVED', 'ACTIVE', 'CLOSED', 'DEFAULTED']),
+        new OA\Property(property: 'status', ref: '#/components/schemas/LoanStatus'),
         new OA\Property(property: 'repayments', type: 'array', items: new OA\Items(ref: '#/components/schemas/LoanRepayment')),
     ]
 )]
@@ -257,7 +262,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'paid_amount', type: 'number', format: 'float'),
         new OA\Property(property: 'remaining_amount', type: 'number', format: 'float'),
         new OA\Property(property: 'days_late', type: 'integer'),
-        new OA\Property(property: 'status', type: 'string', enum: ['PENDING', 'PAID', 'LATE']),
+        new OA\Property(property: 'status', ref: '#/components/schemas/LoanRepaymentStatus'),
     ]
 )]
 #[OA\Schema(
@@ -282,7 +287,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'id', type: 'integer'),
         new OA\Property(property: 'title', type: 'string'),
         new OA\Property(property: 'message', type: 'string'),
-        new OA\Property(property: 'type', type: 'string', example: 'COMPLEMENTS_REQUESTED'),
+        new OA\Property(property: 'type', ref: '#/components/schemas/NotificationType'),
         new OA\Property(property: 'is_read', type: 'boolean'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
     ]
@@ -293,7 +298,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'id', type: 'integer'),
         new OA\Property(property: 'overall_score', type: 'number', format: 'float'),
         new OA\Property(property: 'confidence_score', type: 'number', format: 'float'),
-        new OA\Property(property: 'recommendation', type: 'string', enum: ['FAVORABLE', 'RESERVED', 'UNFAVORABLE']),
+        new OA\Property(property: 'recommendation', ref: '#/components/schemas/ScoringRecommendation'),
         new OA\Property(property: 'analysis_summary', type: 'string'),
         new OA\Property(property: 'repayment_capacity_score', type: 'number', format: 'float'),
         new OA\Property(property: 'income_consistency_score', type: 'number', format: 'float'),
@@ -322,7 +327,7 @@ use OpenApi\Attributes as OA;
     schema: 'VerifyKycRequest',
     required: ['decision'],
     properties: [
-        new OA\Property(property: 'decision', type: 'string', enum: ['PENDING', 'VERIFIED', 'REJECTED']),
+        new OA\Property(property: 'decision', ref: '#/components/schemas/KycStatus'),
         new OA\Property(property: 'rejection_reason', type: 'string', nullable: true, description: 'Obligatoire si decision = REJECTED'),
     ]
 )]
@@ -330,7 +335,7 @@ use OpenApi\Attributes as OA;
     schema: 'VerifyGuaranteeRequest',
     required: ['verification_status'],
     properties: [
-        new OA\Property(property: 'verification_status', type: 'string', enum: ['PENDING', 'VERIFIED', 'REJECTED']),
+        new OA\Property(property: 'verification_status', ref: '#/components/schemas/GuaranteeVerificationStatus'),
         new OA\Property(property: 'verified_value', type: 'number', format: 'float', nullable: true),
     ]
 )]
@@ -375,9 +380,9 @@ use OpenApi\Attributes as OA;
     schema: 'AnalystReviewRequest',
     required: ['recommendation', 'comment'],
     properties: [
-        new OA\Property(property: 'recommendation', type: 'string', enum: ['FAVORABLE', 'RESERVED', 'UNFAVORABLE']),
+        new OA\Property(property: 'recommendation', ref: '#/components/schemas/ScoringRecommendation'),
         new OA\Property(property: 'comment', type: 'string', minLength: 5, example: 'Dossier cohérent.'),
-        new OA\Property(property: 'next_step', type: 'string', enum: ['COMMITTEE', 'VERIFICATION_REQUIRED'], example: 'COMMITTEE'),
+        new OA\Property(property: 'next_step', ref: '#/components/schemas/AnalystNextStep'),
     ]
 )]
 #[OA\Schema(
@@ -386,15 +391,25 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'document_id', type: 'integer', nullable: true),
         new OA\Property(property: 'validation_type', type: 'string', example: 'DOCUMENT'),
-        new OA\Property(property: 'decision', type: 'string', enum: ['VALIDATED', 'TO_COMPLETE', 'REJECTED']),
+        new OA\Property(property: 'decision', ref: '#/components/schemas/ValidationDecision'),
         new OA\Property(property: 'comment', type: 'string', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'Anomaly',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'anomaly_type', type: 'string', example: 'MISSING_MANDATORY_DOCUMENTS'),
+        new OA\Property(property: 'severity', ref: '#/components/schemas/AnomalySeverity'),
+        new OA\Property(property: 'description', type: 'string'),
+        new OA\Property(property: 'status', ref: '#/components/schemas/AnomalyStatus'),
     ]
 )]
 #[OA\Schema(
     schema: 'ResolveAnomalyRequest',
     required: ['status', 'resolution_comment'],
     properties: [
-        new OA\Property(property: 'status', type: 'string', enum: ['OPEN', 'RESOLVED', 'IGNORED']),
+        new OA\Property(property: 'status', ref: '#/components/schemas/AnomalyStatus'),
         new OA\Property(property: 'resolution_comment', type: 'string', minLength: 5),
     ]
 )]
@@ -402,7 +417,7 @@ use OpenApi\Attributes as OA;
     schema: 'CommitteeDecisionRequest',
     required: ['decision', 'comment'],
     properties: [
-        new OA\Property(property: 'decision', type: 'string', enum: ['APPROVED', 'REJECTED', 'AMENDED']),
+        new OA\Property(property: 'decision', ref: '#/components/schemas/CommitteeDecision'),
         new OA\Property(property: 'approved_amount', type: 'number', format: 'float', nullable: true, description: 'Obligatoire si APPROVED ou AMENDED'),
         new OA\Property(property: 'approved_duration_months', type: 'integer', nullable: true, description: 'Obligatoire si APPROVED ou AMENDED'),
         new OA\Property(property: 'comment', type: 'string', minLength: 5, example: 'Accord du comité.'),
@@ -417,7 +432,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'email', type: 'string', format: 'email'),
         new OA\Property(property: 'phone', type: 'string', nullable: true),
         new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8),
-        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'credit_agent', 'analyst', 'committee_member']),
+        new OA\Property(property: 'role', ref: '#/components/schemas/StaffRoleName'),
     ]
 )]
 #[OA\Schema(
@@ -427,8 +442,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'last_name', type: 'string'),
         new OA\Property(property: 'email', type: 'string', format: 'email'),
         new OA\Property(property: 'phone', type: 'string', nullable: true),
-        new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive']),
-        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'credit_agent', 'analyst', 'committee_member']),
+        new OA\Property(property: 'status', ref: '#/components/schemas/UserStatus'),
+        new OA\Property(property: 'role', ref: '#/components/schemas/StaffRoleName'),
     ]
 )]
 #[OA\Schema(
@@ -437,7 +452,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'name', type: 'string', example: 'Prototype Cold Start V1.1'),
         new OA\Property(property: 'version', type: 'string', example: 'V1.1'),
-        new OA\Property(property: 'scoring_mode', type: 'string', enum: ['STANDARD', 'COLD_START']),
+        new OA\Property(property: 'scoring_mode', ref: '#/components/schemas/ScoringMode'),
         new OA\Property(property: 'description', type: 'string', nullable: true),
         new OA\Property(property: 'effective_from', type: 'string', format: 'date', nullable: true),
     ]
@@ -446,7 +461,7 @@ use OpenApi\Attributes as OA;
     schema: 'UpdateScoringModelStatusRequest',
     required: ['status'],
     properties: [
-        new OA\Property(property: 'status', type: 'string', enum: ['DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED']),
+        new OA\Property(property: 'status', ref: '#/components/schemas/ScoringModelStatus'),
     ]
 )]
 #[OA\Schema(
@@ -455,11 +470,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'rule_code', type: 'string', example: 'R_CAP_02'),
         new OA\Property(property: 'rule_name', type: 'string'),
-        new OA\Property(
-            property: 'factor_type',
-            type: 'string',
-            enum: ['income_consistency', 'expense', 'activity', 'document', 'savings', 'credit_history', 'guarantee', 'repayment_capacity', 'residential_zone']
-        ),
+        new OA\Property(property: 'factor_type', ref: '#/components/schemas/FactorType'),
         new OA\Property(property: 'description', type: 'string', nullable: true),
         new OA\Property(property: 'weight', type: 'number', format: 'float', minimum: 0, maximum: 100),
         new OA\Property(property: 'min_score', type: 'number', format: 'float', nullable: true),
@@ -494,6 +505,29 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'duration_months', type: 'integer', minimum: 1, maximum: 60, example: 6),
     ]
 )]
+#[OA\Schema(
+    schema: 'ProfilePhotoEnvelope',
+    properties: [
+        new OA\Property(property: 'message', type: 'string'),
+        new OA\Property(property: 'has_photo', type: 'boolean'),
+        new OA\Property(property: 'profile_photo_url', type: 'string', format: 'uri', nullable: true),
+        new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+    ]
+)]
+#[OA\RequestBody(
+    request: 'UploadProfilePhoto',
+    required: true,
+    description: 'multipart/form-data — JPG, PNG ou WEBP, 2 Mo max.',
+    content: new OA\MediaType(
+        mediaType: 'multipart/form-data',
+        schema: new OA\Schema(
+            required: ['photo'],
+            properties: [
+                new OA\Property(property: 'photo', description: 'Image JPG, PNG ou WEBP (max 2 Mo)', type: 'string', format: 'binary'),
+            ]
+        )
+    )
+)]
 #[OA\RequestBody(
     request: 'UploadCreditDocument',
     required: true,
@@ -503,7 +537,7 @@ use OpenApi\Attributes as OA;
         schema: new OA\Schema(
             required: ['document_type', 'file'],
             properties: [
-                new OA\Property(property: 'document_type', type: 'string', example: 'JUSTIFICATIF_DOMICILE'),
+                new OA\Property(property: 'document_type', ref: '#/components/schemas/CreditDocumentType'),
                 new OA\Property(property: 'file', description: 'Fichier PDF, JPG ou PNG (max 10 Mo)', type: 'string', format: 'binary'),
             ]
         )
@@ -518,7 +552,7 @@ use OpenApi\Attributes as OA;
         schema: new OA\Schema(
             required: ['document_type', 'file'],
             properties: [
-                new OA\Property(property: 'document_type', type: 'string', example: 'CNI'),
+                new OA\Property(property: 'document_type', ref: '#/components/schemas/KycDocumentType'),
                 new OA\Property(property: 'document_number', type: 'string', nullable: true, example: 'M123456'),
                 new OA\Property(property: 'file', description: 'Fichier PDF, JPG ou PNG (max 10 Mo)', type: 'string', format: 'binary'),
             ]

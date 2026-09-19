@@ -147,7 +147,7 @@ class CreditAgentController extends Controller
         operationId: 'agentVerifyKyc',
         tags: ['Chargé de crédit'],
         summary: 'Vérifier une pièce d’identité',
-        description: '**Rôles :** Chargé (`credit_agent`), Analyste (`analyst`), Admin (`admin`). L’analyste appelle le même contrat via `/api/analyst/clients/{client}/kyc-documents/{kycDocument}/verify`.',
+        description: '**Rôles :** Chargé (`credit_agent`), Analyste (`analyst`), Admin (`admin`). **Valeurs :** `decision` = `PENDING` | `VERIFIED` | `REJECTED` (`rejection_reason` obligatoire si `REJECTED`).',
         security: [['sanctum' => []]],
         parameters: [
             new OA\Parameter(ref: '#/components/parameters/ClientId'),
@@ -184,7 +184,7 @@ class CreditAgentController extends Controller
         operationId: 'agentVerifyGuarantee',
         tags: ['Chargé de crédit'],
         summary: 'Examiner une garantie',
-        description: '**Rôles :** Chargé (`credit_agent`), Analyste (`analyst`), Admin (`admin`). L’analyste appelle le même contrat via `/api/analyst/guarantees/{guarantee}/verify`.',
+        description: '**Rôles :** Chargé (`credit_agent`), Analyste (`analyst`), Admin (`admin`). **Valeurs :** `verification_status` = `PENDING` | `VERIFIED` | `REJECTED`.',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(ref: '#/components/parameters/GuaranteeId')],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/VerifyGuaranteeRequest')),

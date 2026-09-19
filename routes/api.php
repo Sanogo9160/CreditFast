@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CreditRequestController;
 use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ProfilePhotoController;
 use App\Http\Controllers\Api\ScoringController;
 use App\Http\Controllers\Api\SimulationController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::put('/password', [AuthController::class, 'updatePassword'])->middleware('throttle:passwords');
     });
+
+    Route::get('/profile-photo', [ProfilePhotoController::class, 'show']);
+    Route::post('/profile-photo', [ProfilePhotoController::class, 'store'])->middleware('throttle:profile-photos');
+    Route::put('/profile-photo', [ProfilePhotoController::class, 'update'])->middleware('throttle:profile-photos');
+    Route::delete('/profile-photo', [ProfilePhotoController::class, 'destroy']);
+    Route::get('/users/{user}/photo/file', [ProfilePhotoController::class, 'file'])->name('users.photo.file');
 
     Route::get('/documents/{document}/file', [DocumentDownloadController::class, 'creditDocument']);
     Route::get('/kyc-documents/{kycDocument}/file', [DocumentDownloadController::class, 'kycDocument']);

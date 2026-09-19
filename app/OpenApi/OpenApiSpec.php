@@ -28,6 +28,20 @@ API de microcrédit CreditFast (Laravel Sanctum).
 Dans Swagger UI, cliquer **Authorize** et coller le token (sans le préfixe `Bearer`).
 
 **Token Sanctum :** renvoyé dans `token` à l’inscription ou à la connexion. L’envoyer ensuite en en-tête `Authorization: Bearer {token}`. Il n’expire pas tout seul ; il est révoqué au logout, au changement / reset de mot de passe (autres sessions), ou si le compte est désactivé.
+
+**Énumérations :** dans Swagger UI, les champs concernés apparaissent en **liste déroulante**. Chaque valeur est expliquée dans le schéma (section Schemas). Les plus utilisées :
+
+| Schéma | Où |
+|---|---|
+| `CreditRequestStatus` | dossier (`DRAFT` = avant envoi au chargé) |
+| `KycStatus` | identité client + vérification pièce |
+| `GuaranteeVerificationStatus` | garantie |
+| `LoanStatus` / `LoanRepaymentStatus` | prêt et échéances |
+| `ScoringRecommendation` | avis moteur / analyste |
+| `ValidationDecision` | contrôle humain d’une pièce |
+| `CommitteeDecision` | décision d’octroi |
+| `RoleName` / `StaffRoleName` / `UserStatus` | comptes |
+| `CreditDocumentType` / `KycDocumentType` / `GuaranteeType` | pièces et garanties (valeurs habituelles) |
 MD
 )]
 #[OA\Server(url: L5_SWAGGER_CONST_HOST, description: 'Hôte actuel (L5_SWAGGER_CONST_HOST)')]
@@ -42,6 +56,7 @@ MD
 #[OA\Tag(name: 'Authentification client', description: 'Inscription et connexion client par numéro de téléphone unique. Public.')]
 #[OA\Tag(name: 'Authentification interne', description: 'Connexion des comptes internes (admin, chargé, analyste, comité) par e-mail professionnel. Public.')]
 #[OA\Tag(name: 'Session', description: 'Profil de session, déconnexion et changement de mot de passe. Authentifié.')]
+#[OA\Tag(name: 'Photo de profil', description: 'CRUD de la photo de profil. Tous les comptes authentifiés.')]
 #[OA\Tag(name: 'Profil client', description: 'Profil, activités, finances et pièces d’identité. Rôle : Client.')]
 #[OA\Tag(name: 'Demandes de crédit', description: 'Dossiers, pièces jointes et garanties. Soumission. Le staff consulte.')]
 #[OA\Tag(name: 'Documents', description: 'Téléchargement des fichiers (pièces de dossier et KYC).')]

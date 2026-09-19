@@ -12,6 +12,10 @@ return [
     | Comptes internes de démarrage (pas de clients ni de dossiers fictifs).
     | Changer STAFF_BOOTSTRAP_PASSWORD après le premier déploiement.
     */
+    'profile_photo' => [
+        'max_kilobytes' => (int) env('PROFILE_PHOTO_MAX_KILOBYTES', 2048),
+    ],
+
     'staff' => [
         'password' => env('STAFF_BOOTSTRAP_PASSWORD', 'ChangeMe-CreditFast-2026!'),
         'admin_email' => env('STAFF_ADMIN_EMAIL', 'admin@creditfast.ml'),

@@ -18,6 +18,9 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'status' => $this->status,
             'role' => $this->role?->name,
+            'profile_photo_url' => $this->profile_photo_path
+                ? route('users.photo.file', $this->resource, true)
+                : null,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

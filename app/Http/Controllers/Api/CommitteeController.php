@@ -69,7 +69,7 @@ class CommitteeController extends Controller
         operationId: 'committeeDecide',
         tags: ['Comité'],
         summary: 'Décider de l’octroi',
-        description: '**Rôles :** Membre du comité (`committee_member`), Admin (`admin`). APPROVED/AMENDED crée le prêt (sans décaissement).',
+        description: '**Rôles :** Membre du comité (`committee_member`), Admin (`admin`). **Valeurs :** `decision` = `APPROVED` | `REJECTED` | `AMENDED`. `APPROVED` / `AMENDED` créent le prêt (sans décaissement).',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(ref: '#/components/parameters/CreditRequestId')],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/CommitteeDecisionRequest')),

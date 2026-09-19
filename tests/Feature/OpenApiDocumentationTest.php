@@ -61,6 +61,24 @@ class OpenApiDocumentationTest extends TestCase
         $this->assertSame('bearer', $docs['components']['securitySchemes']['sanctum']['scheme']);
         $this->assertArrayHasKey('UploadCreditDocument', $docs['components']['requestBodies']);
         $this->assertArrayHasKey('multipart/form-data', $docs['components']['requestBodies']['UploadCreditDocument']['content']);
+
+        $schemas = $docs['components']['schemas'];
+        $this->assertSame(
+            ['DRAFT', 'SUBMITTED', 'ANALYSIS', 'VERIFICATION_REQUIRED', 'CREDIT_REVIEW', 'COMMITTEE', 'APPROVED', 'REJECTED', 'DISBURSED'],
+            $schemas['CreditRequestStatus']['enum']
+        );
+        $this->assertSame(['PENDING', 'VERIFIED', 'REJECTED'], $schemas['KycStatus']['enum']);
+        $this->assertSame(['FAVORABLE', 'RESERVED', 'UNFAVORABLE'], $schemas['ScoringRecommendation']['enum']);
+        $this->assertSame('#/components/schemas/CreditRequestStatus', $schemas['CreditRequest']['properties']['status']['$ref']);
+        $this->assertSame('#/components/schemas/CreditDocumentType', $docs['components']['requestBodies']['UploadCreditDocument']['content']['multipart/form-data']['schema']['properties']['document_type']['$ref']);
+        $this->assertArrayHasKey('/api/profile-photo', $paths);
+        $this->assertArrayHasKey('get', $paths['/api/profile-photo']);
+        $this->assertArrayHasKey('post', $paths['/api/profile-photo']);
+        $this->assertArrayHasKey('put', $paths['/api/profile-photo']);
+        $this->assertArrayHasKey('delete', $paths['/api/profile-photo']);
+        $this->assertArrayHasKey('/api/users/{user}/photo/file', $paths);
+        $this->assertStringContainsString('FAVORABLE', $paths['/api/analyst/requests/{creditRequest}/review']['post']['description']);
+        $this->assertStringContainsString('APPROVED', $paths['/api/committee/requests/{creditRequest}/decide']['post']['description']);
     }
 
     public function test_swagger_ui_fetches_the_spec_from_a_same_origin_relative_url(): void

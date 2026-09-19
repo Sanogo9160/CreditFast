@@ -23,11 +23,13 @@ class User extends Authenticatable
         'email',
         'password',
         'status',
+        'profile_photo_path',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'profile_photo_path',
     ];
 
     protected function casts(): array
