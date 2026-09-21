@@ -21,7 +21,7 @@ use RuntimeException;
 /**
  * Moteur de scoring V1 — aide à la décision, jamais décision d’octroi.
  *
- * Architecture (inchangée) :
+ * Architecture  :
  * SCORING MODEL → SCORING RULES → CREDIT ANALYSIS → SCORE FACTORS
  *
  * ## Choix du mode

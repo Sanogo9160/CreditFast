@@ -36,6 +36,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('/documents/{document}/file', [DocumentDownloadController::class, 'creditDocument']);
     Route::get('/kyc-documents/{kycDocument}/file', [DocumentDownloadController::class, 'kycDocument']);
+    Route::get('/guarantees/{guarantee}/file', [DocumentDownloadController::class, 'guaranteeFile'])
+        ->name('guarantees.file');
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/{notification}', [NotificationController::class, 'show']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);

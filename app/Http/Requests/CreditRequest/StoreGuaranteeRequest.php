@@ -26,6 +26,7 @@ class StoreGuaranteeRequest extends FormRequest
             'guarantee_type' => ['required', 'string', 'max:80'],
             'description' => ['nullable', 'string'],
             'declared_value' => ['required', 'numeric', 'min:0'],
+            'file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ];
     }
 
@@ -37,6 +38,18 @@ class StoreGuaranteeRequest extends FormRequest
         return [
             'guarantee_type' => 'type de garantie',
             'declared_value' => 'valeur déclarée',
+            'file' => 'fichier de la garantie',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'file.mimes' => 'Merci de joindre un fichier PDF, JPG ou PNG pour la garantie.',
+            'file.max' => 'Le fichier de la garantie ne peut pas dépasser 10 Mo.',
         ];
     }
 }

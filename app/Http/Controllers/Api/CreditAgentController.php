@@ -14,6 +14,7 @@ use App\Http\Requests\Verification\VerifyGuaranteeRequest;
 use App\Http\Requests\Verification\VerifyKycDocumentRequest;
 use App\Http\Resources\ClientResource;
 use App\Http\Resources\CreditRequestResource;
+use App\Http\Resources\GuaranteeResource;
 use App\Models\Client;
 use App\Models\CreditRequest;
 use App\Models\FinancialAccount;
@@ -209,7 +210,7 @@ class CreditAgentController extends Controller
 
         return response()->json([
             'message' => 'La garantie a bien été examinée et enregistrée.',
-            'guarantee' => $updated,
+            'guarantee' => new GuaranteeResource($updated),
         ]);
     }
 

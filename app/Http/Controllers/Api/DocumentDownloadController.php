@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\Guarantee;
 use App\Models\KycDocument;
 use Illuminate\Support\Facades\Storage;
 use OpenApi\Attributes as OA;
@@ -71,5 +72,43 @@ class DocumentDownloadController extends Controller
         abort_unless(Storage::exists($kycDocument->file_path), 404, 'Ce fichier n’est pas disponible pour le moment.');
 
         return Storage::download($kycDocument->file_path, basename($kycDocument->file_path));
+    }
+
+    #[OA\Get(
+        path: '/api/guarantees/{guarantee}/file',
+        operationId: 'documentsDownloadGuarantee',
+        tags: ['Demandes de crédit'],
+        summary: '[Lire] Télécharger le fichier d’une garantie',
+        description: '**Rôles :** Client propriétaire ou staff. Réponse binaire (fichier).',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(ref: '#/components/parameters/GuaranteeId')],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Fichier',
+                content: new OA\MediaType(
+                    mediaType: 'application/octet-stream',
+                    schema: new OA\Schema(type: 'string', format: 'binary')
+                )
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+        ]
+    )]
+    public function guaranteeFile(Guarantee $guarantee): StreamedResponse
+    {
+        $this->authorize('view', $guarantee);
+
+        abort_unless(
+            filled($guarantee->file_path) && Storage::exists($guarantee->file_path),
+            404,
+            'Aucun fichier n’est associé à cette garantie pour le moment.'
+        );
+
+        return Storage::download(
+            $guarantee->file_path,
+            $guarantee->original_filename ?: basename($guarantee->file_path)
+        );
     }
 }

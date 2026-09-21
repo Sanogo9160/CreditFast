@@ -235,7 +235,8 @@ class ResourceCrudApiTest extends TestCase
             'guarantee_type' => 'BOUTIQUE',
             'declared_value' => 350000,
             'description' => 'Boutique Medine',
-        ])->assertCreated();
+        ])->assertCreated()
+            ->assertJsonPath('guarantee.has_file', false);
 
         $guaranteeId = $guarantee->json('guarantee.id');
 

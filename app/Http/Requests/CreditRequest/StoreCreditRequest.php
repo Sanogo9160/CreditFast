@@ -33,6 +33,32 @@ class StoreCreditRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->exists('guarantee')) {
+            return;
+        }
+
+        if ($this->isBlankGuarantee($this->input('guarantee'))) {
+            $this->merge(['guarantee' => null]);
+        }
+    }
+
+    protected function isBlankGuarantee(mixed $guarantee): bool
+    {
+        if ($guarantee === null) {
+            return true;
+        }
+
+        if (! is_array($guarantee)) {
+            return false;
+        }
+
+        return blank($guarantee['guarantee_type'] ?? null)
+            && blank($guarantee['declared_value'] ?? null)
+            && blank($guarantee['description'] ?? null);
+    }
+
     /**
      * @return array<int, callable>
      */

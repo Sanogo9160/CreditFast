@@ -77,6 +77,12 @@ class OpenApiDocumentationTest extends TestCase
         $this->assertArrayHasKey('put', $paths['/api/profile-photo']);
         $this->assertArrayHasKey('delete', $paths['/api/profile-photo']);
         $this->assertArrayHasKey('/api/users/{user}/photo/file', $paths);
+        $this->assertArrayHasKey('/api/guarantees/{guarantee}/file', $paths);
+        $this->assertArrayHasKey('StoreGuarantee', $docs['components']['requestBodies']);
+        $this->assertArrayHasKey('application/json', $docs['components']['requestBodies']['StoreGuarantee']['content']);
+        $this->assertArrayHasKey('multipart/form-data', $docs['components']['requestBodies']['StoreGuarantee']['content']);
+        $this->assertArrayHasKey('file', $docs['components']['requestBodies']['StoreGuarantee']['content']['multipart/form-data']['schema']['properties']);
+        $this->assertArrayHasKey('Guarantee', $docs['components']['schemas']);
         $this->assertStringContainsString('FAVORABLE', $paths['/api/analyst/requests/{creditRequest}/review']['post']['description']);
         $this->assertStringContainsString('APPROVED', $paths['/api/committee/requests/{creditRequest}/decide']['post']['description']);
     }

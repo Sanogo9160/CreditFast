@@ -20,6 +20,9 @@ class Guarantee extends Model
         'verification_status',
         'verified_by',
         'verified_at',
+        'file_path',
+        'original_filename',
+        'mime_type',
     ];
 
     protected function casts(): array
@@ -31,6 +34,10 @@ class Guarantee extends Model
             'verified_at' => 'datetime',
         ];
     }
+
+    protected $hidden = [
+        'file_path',
+    ];
 
     public function creditRequest(): BelongsTo
     {

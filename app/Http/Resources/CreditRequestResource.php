@@ -25,7 +25,7 @@ class CreditRequestResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'client' => new ClientResource($this->whenLoaded('client')),
             'activity' => $this->whenLoaded('activity'),
-            'guarantees' => $this->whenLoaded('guarantees'),
+            'guarantees' => GuaranteeResource::collection($this->whenLoaded('guarantees')),
             'documents' => DocumentResource::collection($this->whenLoaded('documents')),
             'anomalies' => AnomalyResource::collection($this->whenLoaded('anomalies')),
             'latest_analysis' => new CreditAnalysisResource($this->whenLoaded('latestAnalysis')),

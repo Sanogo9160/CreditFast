@@ -175,6 +175,24 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'Guarantee',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'credit_request_id', type: 'integer', example: 1),
+        new OA\Property(property: 'guarantee_type', ref: '#/components/schemas/GuaranteeType'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'declared_value', type: 'number', format: 'float', example: 400000),
+        new OA\Property(property: 'verified_value', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'verification_status', ref: '#/components/schemas/GuaranteeVerificationStatus'),
+        new OA\Property(property: 'has_file', type: 'boolean', example: true),
+        new OA\Property(property: 'original_filename', type: 'string', nullable: true, example: 'titre-foncier.pdf'),
+        new OA\Property(property: 'mime_type', type: 'string', nullable: true, example: 'application/pdf'),
+        new OA\Property(property: 'file_url', type: 'string', format: 'uri', nullable: true),
+        new OA\Property(property: 'verified_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+    ]
+)]
+#[OA\Schema(
     schema: 'StoreCreditRequest',
     required: ['requested_amount', 'duration_months', 'purpose', 'declared_monthly_income', 'declared_monthly_expenses'],
     properties: [
@@ -184,7 +202,12 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'declared_monthly_income', type: 'number', format: 'float', example: 250000),
         new OA\Property(property: 'declared_monthly_expenses', type: 'number', format: 'float', example: 80000),
         new OA\Property(property: 'activity_id', type: 'integer', nullable: true),
-        new OA\Property(property: 'guarantee', ref: '#/components/schemas/GuaranteeInput', nullable: true),
+        new OA\Property(
+            property: 'guarantee',
+            ref: '#/components/schemas/GuaranteeInput',
+            nullable: true,
+            description: 'Facultatif. Omettre, envoyer `null` ou un objet vide : aucune garantie n’est enregistrée.',
+        ),
     ]
 )]
 #[OA\Schema(
@@ -558,5 +581,44 @@ use OpenApi\Attributes as OA;
             ]
         )
     )
+)]
+#[OA\RequestBody(
+    request: 'StoreGuarantee',
+    required: true,
+    description: 'JSON (sans fichier) ou multipart/form-data. Le champ `file` est facultatif (PDF, JPG, PNG, 10 Mo max).',
+    content: [
+        new OA\JsonContent(ref: '#/components/schemas/GuaranteeInput'),
+        new OA\MediaType(
+            mediaType: 'multipart/form-data',
+            schema: new OA\Schema(
+                required: ['guarantee_type', 'declared_value'],
+                properties: [
+                    new OA\Property(property: 'guarantee_type', ref: '#/components/schemas/GuaranteeType'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Motocyclette'),
+                    new OA\Property(property: 'declared_value', type: 'number', format: 'float', example: 400000),
+                    new OA\Property(property: 'file', description: 'Justificatif PDF, JPG ou PNG (max 10 Mo)', type: 'string', format: 'binary'),
+                ]
+            )
+        ),
+    ]
+)]
+#[OA\RequestBody(
+    request: 'UpdateGuarantee',
+    required: true,
+    description: 'JSON (sans fichier) ou multipart/form-data. Un nouveau `file` remplace le justificatif existant.',
+    content: [
+        new OA\JsonContent(ref: '#/components/schemas/GuaranteeInput'),
+        new OA\MediaType(
+            mediaType: 'multipart/form-data',
+            schema: new OA\Schema(
+                properties: [
+                    new OA\Property(property: 'guarantee_type', ref: '#/components/schemas/GuaranteeType'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'declared_value', type: 'number', format: 'float'),
+                    new OA\Property(property: 'file', description: 'Justificatif PDF, JPG ou PNG (max 10 Mo)', type: 'string', format: 'binary'),
+                ]
+            )
+        ),
+    ]
 )]
 class Schemas {}

@@ -7,6 +7,7 @@ use App\Models\CreditRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CreditRequestApiTest extends TestCase
@@ -48,6 +49,99 @@ class CreditRequestApiTest extends TestCase
             'phone' => '+22370001122',
             'email' => null,
         ]);
+    }
+
+    #[DataProvider('blankGuaranteePayloads')]
+    public function test_does_not_create_guarantee_when_nested_payload_is_blank(mixed $guarantee): void
+    {
+        $user = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/credit-requests', [
+            'requested_amount' => 180000,
+            'duration_months' => 6,
+            'purpose' => 'Petit stock sans garantie',
+            'declared_monthly_income' => 400000,
+            'declared_monthly_expenses' => 120000,
+            'guarantee' => $guarantee,
+        ])->assertCreated();
+
+        $requestId = $response->json('credit_request.id');
+
+        $this->assertDatabaseMissing('guarantees', [
+            'credit_request_id' => $requestId,
+        ]);
+        $this->assertSame([], $response->json('credit_request.guarantees'));
+    }
+
+    public function test_creates_nested_guarantee_when_it_is_filled(): void
+    {
+        $user = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/credit-requests', [
+            'requested_amount' => 180000,
+            'duration_months' => 6,
+            'purpose' => 'Petit stock avec garantie',
+            'declared_monthly_income' => 400000,
+            'declared_monthly_expenses' => 120000,
+            'guarantee' => [
+                'guarantee_type' => 'BOUTIQUE',
+                'declared_value' => 350000,
+                'description' => 'Boutique Medine',
+            ],
+        ])->assertCreated();
+
+        $requestId = $response->json('credit_request.id');
+
+        $this->assertDatabaseHas('guarantees', [
+            'credit_request_id' => $requestId,
+            'guarantee_type' => 'BOUTIQUE',
+            'declared_value' => 350000,
+        ]);
+        $this->assertSame('BOUTIQUE', $response->json('credit_request.guarantees.0.guarantee_type'));
+    }
+
+    public function test_returns_422_when_nested_guarantee_is_only_partially_filled(): void
+    {
+        $user = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/credit-requests', [
+            'requested_amount' => 180000,
+            'duration_months' => 6,
+            'purpose' => 'Stock avec garantie incomplète',
+            'declared_monthly_income' => 400000,
+            'declared_monthly_expenses' => 120000,
+            'guarantee' => [
+                'guarantee_type' => 'BOUTIQUE',
+            ],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['guarantee.declared_value']);
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function blankGuaranteePayloads(): array
+    {
+        return [
+            'null' => [null],
+            'empty_object' => [[]],
+            'empty_strings' => [[
+                'guarantee_type' => '',
+                'declared_value' => '',
+                'description' => '',
+            ]],
+            'null_fields' => [[
+                'guarantee_type' => null,
+                'declared_value' => null,
+                'description' => null,
+            ]],
+        ];
     }
 
     public function test_create_and_submit_credit_request_api(): void

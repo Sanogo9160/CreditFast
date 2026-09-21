@@ -13,6 +13,7 @@ use App\Http\Requests\CreditRequest\UpdateGuaranteeRequest;
 use App\Http\Requests\CreditRequest\UploadDocumentRequest;
 use App\Http\Resources\CreditRequestResource;
 use App\Http\Resources\DocumentResource;
+use App\Http\Resources\GuaranteeResource;
 use App\Models\Client;
 use App\Models\CreditRequest;
 use App\Models\Document;
@@ -23,6 +24,7 @@ use App\Services\FinancialCalculationService;
 use App\Services\OcrExtractionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use OpenApi\Attributes as OA;
 
@@ -88,7 +90,7 @@ class CreditRequestController extends Controller
         operationId: 'creditRequestsStore',
         tags: ['Demandes de crédit'],
         summary: '[Créer] Une demande de crédit',
-        description: '**Rôles :** Client (`client`). La demande est enregistrée puis peut encore être complétée avant soumission.',
+        description: '**Rôles :** Client (`client`). La demande est enregistrée puis peut encore être complétée avant soumission. La garantie imbriquée est facultative : si elle est absente ou non renseignée, aucune garantie n’est créée.',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StoreCreditRequest')),
         responses: [
@@ -118,11 +120,13 @@ class CreditRequestController extends Controller
             'status' => CreditRequestStatus::Draft,
         ]);
 
-        if (! empty($validated['guarantee'])) {
+        $guarantee = $validated['guarantee'] ?? null;
+
+        if (is_array($guarantee) && filled($guarantee['guarantee_type'] ?? null)) {
             $creditRequest->guarantees()->create([
-                'guarantee_type' => $validated['guarantee']['guarantee_type'],
-                'description' => $validated['guarantee']['description'] ?? null,
-                'declared_value' => $validated['guarantee']['declared_value'],
+                'guarantee_type' => $guarantee['guarantee_type'],
+                'description' => $guarantee['description'] ?? null,
+                'declared_value' => $guarantee['declared_value'],
                 'verification_status' => GuaranteeVerificationStatus::Pending,
             ]);
         }
@@ -179,10 +183,10 @@ class CreditRequestController extends Controller
         operationId: 'creditRequestsStoreGuarantee',
         tags: ['Demandes de crédit'],
         summary: '[Créer] Ajouter une garantie',
-        description: '**Rôles :** Client propriétaire (DRAFT ou VERIFICATION_REQUIRED).',
+        description: '**Rôles :** Client propriétaire (DRAFT ou VERIFICATION_REQUIRED). JSON ou **multipart/form-data**. Champ `file` facultatif (PDF, JPG, PNG, 10 Mo max) en plus du type, de la description et de la valeur.',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(ref: '#/components/parameters/CreditRequestId')],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/GuaranteeInput')),
+        requestBody: new OA\RequestBody(ref: '#/components/requestBodies/StoreGuarantee'),
         responses: [
             new OA\Response(response: 201, description: 'Garantie enregistrée, en attente de validation par l’équipe'),
             new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
@@ -193,13 +197,15 @@ class CreditRequestController extends Controller
     public function storeGuarantee(StoreGuaranteeRequest $request, CreditRequest $creditRequest): JsonResponse
     {
         $guarantee = $creditRequest->guarantees()->create([
-            ...$request->validated(),
+            ...$request->safe()->except('file'),
             'verification_status' => GuaranteeVerificationStatus::Pending,
         ]);
 
+        $this->storeGuaranteeFile($guarantee, $request->file('file'));
+
         return response()->json([
             'message' => 'Garantie enregistrée avec succès. En attente de validation finale par l’équipe.',
-            'guarantee' => $guarantee,
+            'guarantee' => new GuaranteeResource($guarantee->fresh()),
         ], 201);
     }
 
@@ -343,12 +349,16 @@ class CreditRequestController extends Controller
             ], 422);
         }
 
-        $creditRequest->load('documents');
+        $creditRequest->load(['documents', 'guarantees']);
 
         foreach ($creditRequest->documents as $document) {
             if ($document->file_path) {
                 Storage::delete($document->file_path);
             }
+        }
+
+        foreach ($creditRequest->guarantees as $guarantee) {
+            $this->deleteGuaranteeFile($guarantee);
         }
 
         $creditRequest->delete();
@@ -466,7 +476,9 @@ class CreditRequestController extends Controller
         $this->authorize('view', $creditRequest);
 
         return response()->json([
-            'data' => $creditRequest->guarantees()->latest()->orderByDesc('id')->get(),
+            'data' => GuaranteeResource::collection(
+                $creditRequest->guarantees()->latest()->orderByDesc('id')->get()
+            ),
         ]);
     }
 
@@ -491,7 +503,7 @@ class CreditRequestController extends Controller
         $this->authorize('view', $guarantee);
         abort_unless($guarantee->credit_request_id === $creditRequest->id, 404);
 
-        return response()->json(['guarantee' => $guarantee]);
+        return response()->json(['guarantee' => new GuaranteeResource($guarantee)]);
     }
 
     #[OA\Put(
@@ -499,13 +511,13 @@ class CreditRequestController extends Controller
         operationId: 'creditGuaranteesUpdate',
         tags: ['Demandes de crédit'],
         summary: '[Modifier] Une garantie en attente',
-        description: '**Rôles :** Client propriétaire. Uniquement si la garantie n’a pas encore été examinée.',
+        description: '**Rôles :** Client propriétaire. Uniquement si la garantie n’a pas encore été examinée. JSON ou **multipart/form-data**. Un nouveau `file` remplace le fichier existant.',
         security: [['sanctum' => []]],
         parameters: [
             new OA\Parameter(ref: '#/components/parameters/CreditRequestId'),
             new OA\Parameter(ref: '#/components/parameters/GuaranteeId'),
         ],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/GuaranteeInput')),
+        requestBody: new OA\RequestBody(ref: '#/components/requestBodies/UpdateGuarantee'),
         responses: [
             new OA\Response(response: 200, description: 'Garantie mise à jour'),
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
@@ -516,11 +528,12 @@ class CreditRequestController extends Controller
     {
         abort_unless($guarantee->credit_request_id === $creditRequest->id, 404);
 
-        $guarantee->update($request->validated());
+        $guarantee->update($request->safe()->except('file'));
+        $this->storeGuaranteeFile($guarantee, $request->file('file'));
 
         return response()->json([
             'message' => 'La garantie a bien été mise à jour.',
-            'guarantee' => $guarantee->fresh(),
+            'guarantee' => new GuaranteeResource($guarantee->fresh()),
         ]);
     }
 
@@ -557,11 +570,36 @@ class CreditRequestController extends Controller
             ], 422);
         }
 
+        $this->deleteGuaranteeFile($guarantee);
         $guarantee->delete();
 
         return response()->json([
             'message' => 'La garantie a bien été retirée.',
         ]);
+    }
+
+    protected function storeGuaranteeFile(Guarantee $guarantee, ?UploadedFile $file): void
+    {
+        if ($file === null) {
+            return;
+        }
+
+        $this->deleteGuaranteeFile($guarantee);
+
+        $path = $file->store("guarantee_documents/{$guarantee->credit_request_id}");
+
+        $guarantee->update([
+            'file_path' => $path,
+            'original_filename' => $file->getClientOriginalName(),
+            'mime_type' => $file->getClientMimeType(),
+        ]);
+    }
+
+    protected function deleteGuaranteeFile(Guarantee $guarantee): void
+    {
+        if (filled($guarantee->file_path) && Storage::exists($guarantee->file_path)) {
+            Storage::delete($guarantee->file_path);
+        }
     }
 
     /**
