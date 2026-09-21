@@ -40,6 +40,8 @@ use RuntimeException;
  *   (≤5 % → 95, ≤15 % → 80, ≤25 % → 60, sinon 35 ; pas de référence → 50).
  * - expense : charges / revenu total (≤30 % → 95, ≤50 % → 80, ≤70 % → 60, sinon 30).
  * - activity : ancienneté en mois (≥36 → 95, ≥24 → 85, ≥12 → 70, sinon 50 ; sans activité → 60).
+ * - activity_vitality : récence des preuves (40 %) + rythme 90 j (35 %) + adéquation durée/cycle (25 %).
+ *   Signal manquant → 50, jamais 0. Stock/récolte → 3–6 mois ; équipement → 10–18 ; sinon 6–12.
  * - document : base 90, −15 par anomalie ouverte, −10 par anomalie critique, +5 par pièce (borné 10–100).
  * - savings (STANDARD seulement) : solde moyen / montant demandé
  *   (≥50 % → 95, ≥20 % → 80, ≥10 % → 65, sinon 45) + bonus régularité (6 dépôts +2, 12 dépôts +5).
@@ -50,11 +52,11 @@ use RuntimeException;
  *
  * ## Pondérations V1 (règles ACTIVE du seeder — la zone résidentielle est INACTIVE, poids 0)
  * STANDARD (historique d’épargne et/ou de crédit) — somme utile = 100 % :
- *   repayment_capacity 25 %, income_consistency 15 %, activity 15 %,
- *   expense 10 %, document 10 %, savings 10 %, credit_history 10 %, guarantee 5 %.
+ *   repayment_capacity 25 %, activity_vitality 15 %, income_consistency 10 %,
+ *   activity 5 %, expense 10 %, document 10 %, savings 10 %, credit_history 10 %, guarantee 5 %.
  * COLD_START (ni épargne ni crédit antérieur dans le modèle) — somme utile = 100 % :
- *   repayment_capacity 30 %, income_consistency 20 %, activity 20 %,
- *   expense 10 %, document 10 %, guarantee 10 %.
+ *   repayment_capacity 30 %, activity_vitality 20 %, income_consistency 15 %,
+ *   activity 10 %, expense 10 %, document 10 %, guarantee 5 %.
  * Les facteurs `savings` et `credit_history` n’ont pas de règle Cold Start : ils sont
  * calculés en interne pour l’explicabilité mais `included = false`, donc hors note globale.
  *
@@ -73,6 +75,7 @@ class CreditScoringEngine
     public function __construct(
         protected AnomalyDetectionService $anomalyService,
         protected CreditWorkflowService $workflowService,
+        protected ActivityVitalityScorer $activityVitalityScorer,
     ) {}
 
     /**
@@ -120,6 +123,7 @@ class CreditScoringEngine
                 'income_consistency_score' => $factorResults[FactorType::IncomeConsistency->value]['score'] ?? 0,
                 'expense_score' => $factorResults[FactorType::Expense->value]['score'] ?? 0,
                 'activity_score' => $factorResults[FactorType::Activity->value]['score'] ?? 0,
+                'activity_vitality_score' => $factorResults[FactorType::ActivityVitality->value]['score'] ?? 0,
                 'document_score' => $factorResults[FactorType::Document->value]['score'] ?? 0,
                 'savings_score' => $factorResults[FactorType::Savings->value]['score'] ?? 0,
                 'credit_history_score' => $factorResults[FactorType::CreditHistory->value]['score'] ?? 0,
@@ -262,6 +266,7 @@ class CreditScoringEngine
         $client = $request->client;
         $profile = $client->financialProfile;
         $activity = $request->activity;
+        $vitality = $this->activityVitalityScorer->score($request);
 
         $disposable = (float) ($request->disposable_income ?? $profile?->disposable_income ?? 0);
         $monthlyPayment = (float) $request->estimated_monthly_payment;
@@ -417,6 +422,11 @@ class CreditScoringEngine
                 'name' => 'Stabilité de l’Activité',
                 'score' => $activityScore,
                 'explanation' => 'Ancienneté et localisation de l’activité économique',
+            ],
+            FactorType::ActivityVitality->value => [
+                'name' => 'Vitalité du cycle d’activité',
+                'score' => $vitality['score'],
+                'explanation' => $vitality['explanation'],
             ],
             FactorType::Document->value => [
                 'name' => 'Qualité des Justificatifs',

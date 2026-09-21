@@ -241,7 +241,8 @@ Famille de règle / facteur du scoring.
 
 - `income_consistency` — cohérence des revenus
 - `expense` — charges
-- `activity` — activité économique
+- `activity` — ancienneté de l’activité
+- `activity_vitality` — vitalité du cycle (récence, rythme, adéquation)
 - `document` — pièces du dossier
 - `savings` — épargne
 - `credit_history` — historique de crédit
@@ -249,7 +250,7 @@ Famille de règle / facteur du scoring.
 - `repayment_capacity` — capacité de remboursement
 - `residential_zone` — zone de résidence
 MD,
-    enum: ['income_consistency', 'expense', 'activity', 'document', 'savings', 'credit_history', 'guarantee', 'repayment_capacity', 'residential_zone'],
+    enum: ['income_consistency', 'expense', 'activity', 'activity_vitality', 'document', 'savings', 'credit_history', 'guarantee', 'repayment_capacity', 'residential_zone'],
     example: 'repayment_capacity'
 )]
 #[OA\Schema(

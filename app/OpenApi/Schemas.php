@@ -326,6 +326,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'repayment_capacity_score', type: 'number', format: 'float'),
         new OA\Property(property: 'income_consistency_score', type: 'number', format: 'float'),
         new OA\Property(property: 'activity_score', type: 'number', format: 'float'),
+        new OA\Property(property: 'activity_vitality_score', type: 'number', format: 'float'),
         new OA\Property(property: 'expense_score', type: 'number', format: 'float'),
         new OA\Property(property: 'document_score', type: 'number', format: 'float'),
         new OA\Property(property: 'savings_score', type: 'number', format: 'float'),

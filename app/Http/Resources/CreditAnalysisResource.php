@@ -16,6 +16,7 @@ class CreditAnalysisResource extends JsonResource
             'income_consistency_score' => (float) $this->income_consistency_score,
             'expense_score' => (float) $this->expense_score,
             'activity_score' => (float) $this->activity_score,
+            'activity_vitality_score' => (float) $this->activity_vitality_score,
             'document_score' => (float) $this->document_score,
             'savings_score' => (float) $this->savings_score,
             'credit_history_score' => (float) $this->credit_history_score,

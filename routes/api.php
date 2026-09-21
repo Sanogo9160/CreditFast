@@ -110,6 +110,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/requests', [CreditAgentController::class, 'index']);
         Route::get('/clients', [CreditAgentController::class, 'indexClients']);
         Route::get('/clients/{client}', [CreditAgentController::class, 'showClient']);
+        Route::get('/clients/{client}/kyc', [CreditAgentController::class, 'indexClientKyc']);
         Route::post('/requests/{creditRequest}/request-complements', [CreditAgentController::class, 'requestComplements']);
         Route::post('/requests/{creditRequest}/send-to-analysis', [CreditAgentController::class, 'sendToAnalysis']);
         Route::post('/clients/{client}/kyc-documents/{kycDocument}/verify', [CreditAgentController::class, 'verifyKycDocument'])
@@ -122,6 +123,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::middleware('role:analyst,admin')->prefix('analyst')->group(function () {
         Route::get('/requests', [AnalystController::class, 'index']);
+        Route::get('/requests/{creditRequest}/anomalies', [AnalystController::class, 'indexAnomalies']);
         Route::post('/requests/{creditRequest}/review', [AnalystController::class, 'review']);
         Route::post('/requests/{creditRequest}/human-validation', [AnalystController::class, 'recordHumanValidation']);
         Route::post('/anomalies/{anomaly}/resolve', [AnalystController::class, 'resolveAnomaly']);

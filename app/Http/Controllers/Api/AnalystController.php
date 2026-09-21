@@ -139,6 +139,36 @@ class AnalystController extends Controller
         ]);
     }
 
+    #[OA\Get(
+        path: '/api/analyst/requests/{creditRequest}/anomalies',
+        operationId: 'analystAnomaliesIndex',
+        tags: ['Analyste'],
+        summary: '[Lister] Les anomalies d’une demande',
+        description: '**Rôles :** Analyste (`analyst`), Admin (`admin`). Points à vérifier détectés sur le dossier (ouverts, résolus ou ignorés).',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(ref: '#/components/parameters/CreditRequestId')],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste des anomalies'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ]
+    )]
+    public function indexAnomalies(CreditRequest $creditRequest): JsonResponse
+    {
+        $this->authorize('review', $creditRequest);
+        $this->authorize('viewAny', Anomaly::class);
+
+        $anomalies = $creditRequest->anomalies()
+            ->with('document')
+            ->latest()
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'data' => AnomalyResource::collection($anomalies),
+        ]);
+    }
+
     #[OA\Post(
         path: '/api/analyst/anomalies/{anomaly}/resolve',
         operationId: 'analystResolveAnomaly',

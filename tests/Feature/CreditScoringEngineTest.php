@@ -32,7 +32,10 @@ class CreditScoringEngineTest extends TestCase
         $this->assertGreaterThanOrEqual(0, (float) $analysis->overall_score);
         $this->assertLessThanOrEqual(100, (float) $analysis->overall_score);
         $this->assertEquals(ScoringMode::Standard, $analysis->scoringModel->scoring_mode);
-        $this->assertCount(8, $analysis->factors);
+        $this->assertCount(9, $analysis->factors);
+        $this->assertTrue($analysis->factors->contains(
+            fn ($factor): bool => $factor->factor_type === FactorType::ActivityVitality
+        ));
         $this->assertFalse($analysis->factors->contains(
             fn ($factor): bool => $factor->factor_type === FactorType::ResidentialZone
         ));
@@ -56,7 +59,10 @@ class CreditScoringEngineTest extends TestCase
         $this->assertGreaterThanOrEqual(0, (float) $analysis->overall_score);
         $this->assertLessThanOrEqual(100, (float) $analysis->overall_score);
         $this->assertEquals(ScoringMode::ColdStart, $analysis->scoringModel->scoring_mode);
-        $this->assertCount(6, $analysis->factors);
+        $this->assertCount(7, $analysis->factors);
+        $this->assertTrue($analysis->factors->contains(
+            fn ($factor): bool => $factor->factor_type === FactorType::ActivityVitality
+        ));
         $this->assertFalse($analysis->factors->contains(fn ($factor): bool => in_array($factor->factor_type->value, ['savings', 'credit_history'], true)));
     }
 }

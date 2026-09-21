@@ -368,4 +368,34 @@ class CreditAgentController extends Controller
             'client' => new ClientResource($client),
         ]);
     }
+
+    #[OA\Get(
+        path: '/api/agent/clients/{client}/kyc',
+        operationId: 'agentClientKycIndex',
+        tags: ['Chargé de crédit'],
+        summary: '[Lister] Les pièces KYC d’un client',
+        description: '**Rôles :** Chargé (`credit_agent`), Admin (`admin`). Pièces d’identité du profil client et statut KYC global.',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(ref: '#/components/parameters/ClientId')],
+        responses: [
+            new OA\Response(response: 200, description: 'Pièces KYC'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ]
+    )]
+    public function indexClientKyc(Client $client): JsonResponse
+    {
+        $this->authorize('view', $client);
+
+        $documents = $client->kycDocuments()
+            ->latest()
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'client_id' => $client->id,
+            'kyc_status' => $client->kyc_status?->value ?? $client->kyc_status,
+            'data' => $documents,
+        ]);
+    }
 }

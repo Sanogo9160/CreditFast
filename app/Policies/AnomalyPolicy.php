@@ -8,6 +8,16 @@ use App\Models\User;
 
 class AnomalyPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole(RoleName::Admin, RoleName::Analyst);
+    }
+
+    public function view(User $user, Anomaly $anomaly): bool
+    {
+        return $this->viewAny($user);
+    }
+
     public function resolve(User $user, Anomaly $anomaly): bool
     {
         return $user->hasAnyRole(RoleName::Admin, RoleName::Analyst);
