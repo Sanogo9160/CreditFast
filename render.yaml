@@ -57,6 +57,6 @@ services:
         value: comite@creditfast.ml
       - key: STAFF_BOOTSTRAP_PASSWORD
         sync: false
-      # One-shot wipe flag — keep "false" so free-tier restarts do not erase data.
+      # Temporary: full wipe+reseed on boot. After Swagger shows 1 admin, set to "false" in Render Dashboard.
       - key: CREDITFAST_RESET_DATABASE
-        value: "false"
+        value: "true"
