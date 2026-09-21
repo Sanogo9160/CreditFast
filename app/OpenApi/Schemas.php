@@ -210,8 +210,9 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'StoreCreditRequest',
-    required: ['requested_amount', 'duration_months', 'purpose', 'declared_monthly_income', 'declared_monthly_expenses'],
+    required: ['credit_type', 'requested_amount', 'duration_months', 'purpose', 'declared_monthly_income', 'declared_monthly_expenses'],
     properties: [
+        new OA\Property(property: 'credit_type', ref: '#/components/schemas/CreditProductType'),
         new OA\Property(property: 'requested_amount', type: 'number', format: 'float', minimum: 10000, example: 500000),
         new OA\Property(property: 'duration_months', type: 'integer', minimum: 1, maximum: 60, example: 6),
         new OA\Property(property: 'purpose', type: 'string', example: 'Fonds de roulement'),
@@ -229,6 +230,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'UpdateCreditRequest',
     properties: [
+        new OA\Property(property: 'credit_type', ref: '#/components/schemas/CreditProductType'),
         new OA\Property(property: 'requested_amount', type: 'number', format: 'float', minimum: 10000),
         new OA\Property(property: 'duration_months', type: 'integer', minimum: 1, maximum: 60),
         new OA\Property(property: 'purpose', type: 'string'),
@@ -242,6 +244,9 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'client_id', type: 'integer'),
+        new OA\Property(property: 'borrower_type', ref: '#/components/schemas/ClientType', nullable: true),
+        new OA\Property(property: 'credit_type', ref: '#/components/schemas/CreditProductType', nullable: true),
+        new OA\Property(property: 'credit_type_label', type: 'string', nullable: true),
         new OA\Property(property: 'requested_amount', type: 'number', format: 'float'),
         new OA\Property(property: 'duration_months', type: 'integer'),
         new OA\Property(property: 'purpose', type: 'string'),

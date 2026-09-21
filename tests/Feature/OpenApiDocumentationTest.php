@@ -30,6 +30,7 @@ class OpenApiDocumentationTest extends TestCase
         $this->assertArrayHasKey('/api/auth/password', $paths);
         $this->assertArrayHasKey('/api/profile', $paths);
         $this->assertArrayHasKey('/api/credit-requests', $paths);
+        $this->assertArrayHasKey('/api/credit-products', $paths);
         $this->assertArrayHasKey('/api/credit-requests/{creditRequest}/documents', $paths);
         $this->assertArrayHasKey('/api/credit-requests/{creditRequest}/score', $paths);
         $this->assertArrayHasKey('/api/agent/requests/{creditRequest}/request-complements', $paths);

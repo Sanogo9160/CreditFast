@@ -222,6 +222,7 @@ class GuaranteeFileApiTest extends TestCase
     private function createDraftCreditRequest(): int
     {
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 220000,
             'duration_months' => 8,
             'purpose' => 'Fonds de roulement',

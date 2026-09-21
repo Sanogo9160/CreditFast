@@ -60,6 +60,7 @@ class CreditRequestApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 180000,
             'duration_months' => 6,
             'purpose' => 'Petit stock sans garantie',
@@ -83,6 +84,7 @@ class CreditRequestApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 180000,
             'duration_months' => 6,
             'purpose' => 'Petit stock avec garantie',
@@ -112,6 +114,7 @@ class CreditRequestApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 180000,
             'duration_months' => 6,
             'purpose' => 'Stock avec garantie incomplète',
@@ -151,6 +154,7 @@ class CreditRequestApiTest extends TestCase
 
         Sanctum::actingAs($user);
         $response = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 1000000,
             'duration_months' => 12,
             'purpose' => 'Extension magasin de vente',

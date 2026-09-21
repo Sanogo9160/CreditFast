@@ -33,6 +33,7 @@ class SpecCoverageApiTest extends TestCase
 
         Sanctum::actingAs($owner);
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 150000,
             'duration_months' => 6,
             'purpose' => 'Petit stock',
@@ -107,6 +108,7 @@ class SpecCoverageApiTest extends TestCase
 
         Sanctum::actingAs($clientUser);
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 200000,
             'duration_months' => 6,
             'purpose' => 'Fonds de roulement',

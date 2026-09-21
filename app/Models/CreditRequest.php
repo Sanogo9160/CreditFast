@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ClientType;
+use App\Enums\CreditProductType;
 use App\Enums\CreditRequestStatus;
 use App\Enums\RepaymentCapacityStatus;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -18,6 +20,8 @@ class CreditRequest extends Model
 
     protected $fillable = [
         'client_id',
+        'borrower_type',
+        'credit_type',
         'activity_id',
         'requested_amount',
         'duration_months',
@@ -34,6 +38,8 @@ class CreditRequest extends Model
     protected function casts(): array
     {
         return [
+            'borrower_type' => ClientType::class,
+            'credit_type' => CreditProductType::class,
             'requested_amount' => 'decimal:2',
             'duration_months' => 'integer',
             'declared_monthly_income' => 'decimal:2',

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ClientType;
+use App\Enums\CreditProductType;
 use App\Enums\CreditRequestStatus;
 use App\Enums\GuaranteeVerificationStatus;
 use App\Enums\RepaymentCapacityStatus;
@@ -90,7 +92,7 @@ class CreditRequestController extends Controller
         operationId: 'creditRequestsStore',
         tags: ['Demandes de crédit'],
         summary: '[Créer] Une demande de crédit',
-        description: '**Rôles :** Client (`client`). La demande est enregistrée puis peut encore être complétée avant soumission. La garantie imbriquée est facultative : si elle est absente ou non renseignée, aucune garantie n’est créée.',
+        description: '**Rôles :** Client (`client`). Choisir un `credit_type` compatible avec le profil (`GET /api/credit-products`). La demande est enregistrée puis peut encore être complétée avant soumission. La garantie imbriquée est facultative : si elle est absente ou non renseignée, aucune garantie n’est créée.',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StoreCreditRequest')),
         responses: [
@@ -104,6 +106,8 @@ class CreditRequestController extends Controller
     {
         $client = $request->user()->client()->with(['financialProfile', 'activities'])->firstOrFail();
         $validated = $request->validated();
+        $creditType = CreditProductType::from($validated['credit_type']);
+        $borrowerType = $client->client_type ?? ClientType::PhysicalPerson;
 
         $requestedAmount = (float) $validated['requested_amount'];
         $durationMonths = (int) $validated['duration_months'];
@@ -112,6 +116,8 @@ class CreditRequestController extends Controller
 
         $creditRequest = CreditRequest::create([
             'client_id' => $client->id,
+            'borrower_type' => $borrowerType,
+            'credit_type' => $creditType,
             'activity_id' => $validated['activity_id'] ?? $client->activities->first()?->id,
             'requested_amount' => $requestedAmount,
             'duration_months' => $durationMonths,

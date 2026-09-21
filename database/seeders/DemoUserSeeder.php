@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\ClientType;
+use App\Enums\CreditProductType;
 use App\Enums\CreditRequestStatus;
 use App\Enums\KycStatus;
 use App\Models\Activity;
@@ -222,6 +223,8 @@ class DemoUserSeeder extends Seeder
             ['client_id' => $clientStandard->id, 'purpose' => 'Achat de stock céréales récolte'],
             [
                 'activity_id' => $activityStandard->id,
+                'borrower_type' => ClientType::PhysicalPerson,
+                'credit_type' => CreditProductType::ProfessionalWorkingCapital,
                 'requested_amount' => 1500000,
                 'duration_months' => 12,
                 'declared_monthly_income' => 850000,
@@ -262,6 +265,8 @@ class DemoUserSeeder extends Seeder
             ['client_id' => $clientColdStart->id, 'purpose' => 'Achat de 2 machines à coudre industrielles'],
             [
                 'activity_id' => $activityColdStart->id,
+                'borrower_type' => ClientType::PhysicalPerson,
+                'credit_type' => CreditProductType::ProfessionalWorkingCapital,
                 'requested_amount' => 600000,
                 'duration_months' => 10,
                 'declared_monthly_income' => 450000,

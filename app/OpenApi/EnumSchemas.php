@@ -77,6 +77,22 @@ MD,
     example: 'SUFFICIENT'
 )]
 #[OA\Schema(
+    schema: 'CreditProductType',
+    type: 'string',
+    description: <<<'MD'
+Produit de crédit. Filtré selon `client_type` du compte.
+
+**Personne physique :** `MORTGAGE`, `CONSUMER_ASSIGNED`, `CONSUMER_PERSONAL`, `REVOLVING`, `STUDENT`, `PROFESSIONAL_WORKING_CAPITAL`
+
+**Personne morale :** `INVESTMENT`, `OVERDRAFT`, `CASH_FACILITY`, `CAMPAIGN`, `DISCOUNT`, `FACTORING`, `LEASING`
+MD,
+    enum: [
+        'MORTGAGE', 'CONSUMER_ASSIGNED', 'CONSUMER_PERSONAL', 'REVOLVING', 'STUDENT', 'PROFESSIONAL_WORKING_CAPITAL',
+        'INVESTMENT', 'OVERDRAFT', 'CASH_FACILITY', 'CAMPAIGN', 'DISCOUNT', 'FACTORING', 'LEASING',
+    ],
+    example: 'CONSUMER_PERSONAL'
+)]
+#[OA\Schema(
     schema: 'ClientType',
     type: 'string',
     description: <<<'MD'

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientProfileController;
 use App\Http\Controllers\Api\CommitteeController;
 use App\Http\Controllers\Api\CreditAgentController;
+use App\Http\Controllers\Api\CreditProductController;
 use App\Http\Controllers\Api\CreditRequestController;
 use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\LoanController;
@@ -91,6 +92,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             ->middleware('role:admin,analyst,credit_agent');
         Route::get('/{creditRequest}/analysis', [ScoringController::class, 'getAnalysis']);
     });
+
+    Route::get('/credit-products', [CreditProductController::class, 'index']);
 
     Route::post('/simulations/installments', [SimulationController::class, 'installments'])
         ->middleware('throttle:simulations');

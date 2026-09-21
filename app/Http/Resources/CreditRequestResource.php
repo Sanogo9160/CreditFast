@@ -12,6 +12,9 @@ class CreditRequestResource extends JsonResource
         return [
             'id' => $this->id,
             'client_id' => $this->client_id,
+            'borrower_type' => $this->borrower_type?->value ?? $this->borrower_type,
+            'credit_type' => $this->credit_type?->value ?? $this->credit_type,
+            'credit_type_label' => $this->credit_type?->label(),
             'requested_amount' => (float) $this->requested_amount,
             'duration_months' => (int) $this->duration_months,
             'purpose' => $this->purpose,

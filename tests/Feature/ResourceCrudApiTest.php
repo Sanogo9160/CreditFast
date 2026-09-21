@@ -171,6 +171,7 @@ class ResourceCrudApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 180000,
             'duration_months' => 6,
             'purpose' => 'Petit réassort',
@@ -194,6 +195,7 @@ class ResourceCrudApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 175000,
             'duration_months' => 6,
             'purpose' => 'Réassort après soumission',
@@ -222,6 +224,7 @@ class ResourceCrudApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 220000,
             'duration_months' => 8,
             'purpose' => 'Fonds de roulement',
@@ -267,6 +270,7 @@ class ResourceCrudApiTest extends TestCase
         Sanctum::actingAs($user);
 
         $created = $this->postJson('/api/credit-requests', [
+            'credit_type' => 'PROFESSIONAL_WORKING_CAPITAL',
             'requested_amount' => 190000,
             'duration_months' => 6,
             'purpose' => 'Stock saisonnier',
