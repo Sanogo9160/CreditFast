@@ -44,6 +44,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+22377000016'),
         new OA\Property(property: 'status', ref: '#/components/schemas/UserStatus'),
         new OA\Property(property: 'role', ref: '#/components/schemas/RoleName'),
+        new OA\Property(property: 'client', ref: '#/components/schemas/Client', nullable: true),
         new OA\Property(property: 'profile_photo_url', type: 'string', format: 'uri', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
     ]
@@ -59,15 +60,21 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'ClientRegisterRequest',
-    required: ['first_name', 'last_name', 'phone', 'password'],
+    required: ['client_type', 'first_name', 'last_name', 'phone', 'password'],
     properties: [
-        new OA\Property(property: 'first_name', type: 'string', maxLength: 100, example: 'Mah'),
-        new OA\Property(property: 'last_name', type: 'string', maxLength: 100, example: 'SANOGO'),
+        new OA\Property(property: 'client_type', ref: '#/components/schemas/ClientType'),
+        new OA\Property(property: 'first_name', type: 'string', maxLength: 100, example: 'Mah', description: 'Prénom du particulier ou du représentant légal'),
+        new OA\Property(property: 'last_name', type: 'string', maxLength: 100, example: 'SANOGO', description: 'Nom du particulier ou du représentant légal'),
         new OA\Property(property: 'phone', type: 'string', maxLength: 30, example: '+22377000016'),
         new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, example: 'mahsanogo12@gmail.com'),
         new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'MotDePasseFort8'),
+        new OA\Property(property: 'company_name', type: 'string', maxLength: 200, nullable: true, example: 'SARL Agro Négoce Mali', description: 'Obligatoire si LEGAL_ENTITY'),
+        new OA\Property(property: 'trade_name', type: 'string', maxLength: 200, nullable: true, example: 'AgroNégoce'),
+        new OA\Property(property: 'registration_number', type: 'string', maxLength: 100, nullable: true, example: 'MA.BKO.2024.B.12345', description: 'RCCM / NIF — obligatoire si LEGAL_ENTITY'),
+        new OA\Property(property: 'legal_form', type: 'string', maxLength: 100, nullable: true, example: 'SARL'),
     ],
     example: [
+        'client_type' => 'PHYSICAL_PERSON',
         'first_name' => 'Mah',
         'last_name' => 'SANOGO',
         'phone' => '+22377000016',
@@ -117,6 +124,11 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'client_number', type: 'string', example: 'CLI-000001'),
+        new OA\Property(property: 'client_type', ref: '#/components/schemas/ClientType'),
+        new OA\Property(property: 'company_name', type: 'string', nullable: true),
+        new OA\Property(property: 'trade_name', type: 'string', nullable: true),
+        new OA\Property(property: 'registration_number', type: 'string', nullable: true),
+        new OA\Property(property: 'legal_form', type: 'string', nullable: true),
         new OA\Property(property: 'kyc_status', ref: '#/components/schemas/KycStatus'),
         new OA\Property(property: 'city', type: 'string', nullable: true),
         new OA\Property(property: 'residential_zone', type: 'string', nullable: true),
@@ -140,6 +152,10 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'city', type: 'string', nullable: true, example: 'Bamako'),
         new OA\Property(property: 'residential_zone', type: 'string', nullable: true, example: 'Commune V'),
         new OA\Property(property: 'occupation', type: 'string', nullable: true, example: 'Commerçante'),
+        new OA\Property(property: 'company_name', type: 'string', nullable: true, description: 'Personne morale uniquement'),
+        new OA\Property(property: 'trade_name', type: 'string', nullable: true, description: 'Personne morale uniquement'),
+        new OA\Property(property: 'registration_number', type: 'string', nullable: true, description: 'Personne morale uniquement'),
+        new OA\Property(property: 'legal_form', type: 'string', nullable: true, description: 'Personne morale uniquement'),
     ]
 )]
 #[OA\Schema(

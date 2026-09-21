@@ -18,6 +18,7 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'status' => $this->status,
             'role' => $this->role?->name,
+            'client' => new ClientResource($this->whenLoaded('client')),
             'profile_photo_url' => $this->profile_photo_path
                 ? route('users.photo.file', $this->resource, true)
                 : null,

@@ -34,6 +34,7 @@ class CreditRequestApiTest extends TestCase
     public function test_register_always_creates_a_client_and_ignores_role_escalation(): void
     {
         $response = $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Awa',
             'last_name' => 'Diarra',
             'phone' => '+22370001122',

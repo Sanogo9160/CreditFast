@@ -33,6 +33,7 @@ class AuthSessionApiTest extends TestCase
     public function test_me_and_logout_work_with_bearer_token(): void
     {
         $register = $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Awa',
             'last_name' => 'Diarra',
             'email' => 'awa.session@example.com',

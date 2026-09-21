@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClientType;
 use App\Enums\KycStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,11 @@ class Client extends Model
     protected $fillable = [
         'user_id',
         'client_number',
+        'client_type',
+        'company_name',
+        'trade_name',
+        'registration_number',
+        'legal_form',
         'date_of_birth',
         'address',
         'city',
@@ -28,6 +34,7 @@ class Client extends Model
     protected function casts(): array
     {
         return [
+            'client_type' => ClientType::class,
             'date_of_birth' => 'date',
             'kyc_status' => KycStatus::class,
             'institution_verified_at' => 'datetime',

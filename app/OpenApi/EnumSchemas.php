@@ -77,6 +77,18 @@ MD,
     example: 'SUFFICIENT'
 )]
 #[OA\Schema(
+    schema: 'ClientType',
+    type: 'string',
+    description: <<<'MD'
+Nature du compte client à l’inscription.
+
+- `PHYSICAL_PERSON` — personne physique (particulier, commerçant individuel)
+- `LEGAL_ENTITY` — personne morale (entreprise demandant un crédit)
+MD,
+    enum: ['PHYSICAL_PERSON', 'LEGAL_ENTITY'],
+    example: 'PHYSICAL_PERSON'
+)]
+#[OA\Schema(
     schema: 'KycStatus',
     type: 'string',
     description: <<<'MD'

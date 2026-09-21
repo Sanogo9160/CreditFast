@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ClientType;
 use App\Enums\CreditRequestStatus;
 use App\Enums\KycStatus;
 use App\Models\Activity;
@@ -96,6 +97,7 @@ class DemoUserSeeder extends Seeder
             ['user_id' => $userStandard->id],
             [
                 'client_number' => 'CLI-000101',
+                'client_type' => ClientType::PhysicalPerson,
                 'date_of_birth' => '1988-05-14',
                 'address' => 'Commune IV, Hamdallaye ACI 2000',
                 'city' => 'Bamako',
@@ -175,6 +177,7 @@ class DemoUserSeeder extends Seeder
             ['user_id' => $userColdStart->id],
             [
                 'client_number' => 'CLI-000102',
+                'client_type' => ClientType::PhysicalPerson,
                 'date_of_birth' => '1995-11-20',
                 'address' => 'Badalabougou, Rue 110',
                 'city' => 'Bamako',

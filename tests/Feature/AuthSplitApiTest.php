@@ -19,6 +19,7 @@ class AuthSplitApiTest extends TestCase
     public function test_client_registers_with_phone_without_email(): void
     {
         $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Awa',
             'last_name' => 'Diarra',
             'phone' => '+223 76 00 00 21',
@@ -38,6 +39,7 @@ class AuthSplitApiTest extends TestCase
     public function test_returns_422_when_client_registers_without_phone(): void
     {
         $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Awa',
             'last_name' => 'Diarra',
             'email' => 'awa.nophone@example.com',
@@ -52,6 +54,7 @@ class AuthSplitApiTest extends TestCase
     public function test_returns_422_when_client_registers_with_duplicate_phone(): void
     {
         $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Awa',
             'last_name' => 'Diarra',
             'phone' => '+22376000022',
@@ -59,6 +62,7 @@ class AuthSplitApiTest extends TestCase
         ])->assertCreated();
 
         $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Binta',
             'last_name' => 'Keita',
             'phone' => '+22376000022',

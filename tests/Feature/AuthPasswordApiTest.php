@@ -136,6 +136,7 @@ class AuthPasswordApiTest extends TestCase
     private function registerToken(): string
     {
         $register = $this->postJson('/api/auth/register', [
+            'client_type' => 'PHYSICAL_PERSON',
             'first_name' => 'Awa',
             'last_name' => 'Diarra',
             'email' => 'awa.password@example.com',

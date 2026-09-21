@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ClientType;
 use App\Enums\KycStatus;
 use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
@@ -29,7 +30,7 @@ class AuthController extends Controller
         operationId: 'authRegisterClient',
         tags: ['Authentification client'],
         summary: '[Créer] Un compte client',
-        description: '**Public — clients uniquement.** Inscription par **numéro de téléphone unique** et mot de passe. L’e-mail est facultatif. Le rôle est toujours `client`.',
+        description: '**Public — clients uniquement.** Inscription par **numéro de téléphone unique** et mot de passe. Choisir `client_type` = `PHYSICAL_PERSON` (particulier) ou `LEGAL_ENTITY` (entreprise). Pour une personne morale : `company_name` et `registration_number` obligatoires ; `first_name` / `last_name` désignent le représentant. L’e-mail est facultatif. Le rôle est toujours `client`.',
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(ref: '#/components/schemas/ClientRegisterRequest')
@@ -54,14 +55,21 @@ class AuthController extends Controller
             'status' => 'active',
         ]);
 
+        $clientType = ClientType::from($validated['client_type']);
+
         Client::create([
             'user_id' => $user->id,
             'client_number' => 'CLI-'.str_pad((string) $user->id, 6, '0', STR_PAD_LEFT),
+            'client_type' => $clientType,
+            'company_name' => $clientType === ClientType::LegalEntity ? ($validated['company_name'] ?? null) : null,
+            'trade_name' => $clientType === ClientType::LegalEntity ? ($validated['trade_name'] ?? null) : null,
+            'registration_number' => $clientType === ClientType::LegalEntity ? ($validated['registration_number'] ?? null) : null,
+            'legal_form' => $clientType === ClientType::LegalEntity ? ($validated['legal_form'] ?? null) : null,
             'kyc_status' => KycStatus::Pending,
         ]);
 
         return $this->sessionResponse(
-            $user->load('role'),
+            $user->load(['role', 'client']),
             'Bienvenue. Votre compte a été créé avec succès.',
             201
         );
