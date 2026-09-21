@@ -14,11 +14,19 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             ScoringModelSeeder::class,
-            StaffUserSeeder::class,
         ]);
 
         if (app()->runningUnitTests()) {
-            $this->call(DemoUserSeeder::class);
+            // Full staff + demo clients for the test suite only.
+            $this->call([
+                StaffUserSeeder::class,
+                DemoUserSeeder::class,
+            ]);
+
+            return;
         }
+
+        // Local / production bootstrap: admin account only.
+        $this->call(AdminUserSeeder::class);
     }
 }
