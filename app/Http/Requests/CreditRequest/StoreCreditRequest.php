@@ -79,6 +79,13 @@ class StoreCreditRequest extends FormRequest
                 $client = $this->user()?->client;
                 $clientType = $client?->client_type;
 
+                if ($client !== null && ! $client->financialAccounts()->exists()) {
+                    $validator->errors()->add(
+                        'client',
+                        'Une demande de crédit nécessite un compte en banque ou en institution. Contactez votre chargé de crédit pour l’enregistrer.'
+                    );
+                }
+
                 if ($clientType instanceof ClientType
                     && ! $validator->errors()->has('credit_type')
                     && $this->filled('credit_type')

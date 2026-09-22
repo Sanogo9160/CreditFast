@@ -14,7 +14,7 @@ Documentation interactive (Swagger) :
 | Runtime | PHP 8.3+, Laravel 13 |
 | Auth | Laravel Sanctum (Bearer token) |
 | Docs API | L5-Swagger (`/api/documentation`) |
-| Base locale | MySQL (Laragon) — ou SQLite via `.env` |
+| Base locale | MySQL (Laragon) |
 | Base distante (docs) | PostgreSQL sur Render |
 
 ---
@@ -85,11 +85,22 @@ Header : `Authorization: Bearer {token}` + `Accept: application/json`.
 Enum `ClientType` :
 
 - `PHYSICAL_PERSON` — particulier / commerçant individuel  
-- `LEGAL_ENTITY` — entreprise (raison sociale, RCCM, etc.)
+- `LEGAL_ENTITY` — entreprise (raison sociale, numéro d’immatriculation, forme juridique)
+
+Champs / sigles utiles pour une personne morale :
+
+| Sigle / terme | Signification |
+|---|---|
+| **RCCM** | Registre du Commerce et du Crédit Mobilier (numéro d’immatriculation de l’entreprise au Mali / OHADA) |
+| **NIF** | Numéro d’Identification Fiscale |
+| **SARL / SA / …** | Forme juridique (`legal_form`) : société à responsabilité limitée, société anonyme, etc. |
+| **IMF** | Institution de MicroFinance |
+| **KYC** | *Know Your Customer* — vérification d’identité et des pièces du client |
+| **PP / PM** | Personne physique / personne morale |
 
 ### Produits (`GET /api/credit-products`)
 
-Les types de crédit sont un **enum PHP** `App\Enums\CreditProductType` (pas une table SQL).  
+Les types de crédit sont un **enum PHP** `App\Enums\CreditProductType`.  
 L’endpoint expose un catalogue dérivé de cet enum :
 
 - **Client** → uniquement les produits compatibles avec son `client_type`
@@ -124,8 +135,8 @@ Client inscrit
   Prêt (/api/loans/…) : décaissement & remboursements
 ```
 
-Scoring : moteur `CreditScoringEngine` (scorecard + facteur `activity_vitality`).  
-Admin : utilisateurs internes, modèles de scoring, audit (`/api/admin/…`).
+Scoring : moteur `CreditScoringEngine` (scorecard + `activity_vitality`). Modèle **STANDARD** uniquement — compte banque/IMF obligatoire. Note globale plafonnée (`CREDIT_SCORE_CEILING`, défaut 95) : marge de prudence, jamais 100 %.  
+Admin : comptes, modèles de scoring, audit (`/api/admin/…`).
 
 ---
 

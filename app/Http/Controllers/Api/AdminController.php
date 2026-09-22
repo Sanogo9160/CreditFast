@@ -261,7 +261,7 @@ class AdminController extends Controller
         operationId: 'adminScoringModelsStore',
         tags: ['Administration'],
         summary: '[Créer] Un modèle de scoring',
-        description: '**Rôles :** Admin (`admin`). **Valeurs :** `scoring_mode` = `STANDARD` | `COLD_START`. Le modèle reste en `DRAFT` jusqu’à activation.',
+        description: '**Rôles :** Admin (`admin`). **Valeurs :** `scoring_mode` = `STANDARD`. Le modèle reste en `DRAFT` jusqu’à activation.',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StoreScoringModelRequest')),
         responses: [

@@ -495,7 +495,7 @@ use OpenApi\Attributes as OA;
     schema: 'StoreScoringModelRequest',
     required: ['name', 'version', 'scoring_mode'],
     properties: [
-        new OA\Property(property: 'name', type: 'string', example: 'Prototype Cold Start V1.1'),
+        new OA\Property(property: 'name', type: 'string', example: 'Modèle Scoring Standard V1.1'),
         new OA\Property(property: 'version', type: 'string', example: 'V1.1'),
         new OA\Property(property: 'scoring_mode', ref: '#/components/schemas/ScoringMode'),
         new OA\Property(property: 'description', type: 'string', nullable: true),

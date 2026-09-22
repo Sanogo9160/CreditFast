@@ -24,47 +24,27 @@ use RuntimeException;
  * Architecture  :
  * SCORING MODEL → SCORING RULES → CREDIT ANALYSIS → SCORE FACTORS
  *
- * ## Choix du mode
- * - STANDARD : le client a un historique d’épargne institutionnel et/ou un crédit
- *   déjà accordé (`loans` / `savings_histories`). Les facteurs épargne et historique
- *   de crédit sont alors inclus s’ils existent dans le modèle actif.
- * - COLD_START : aucun de ces historiques n’est disponible. Absence d’historique
- *   ≠ mauvais historique : les facteurs `savings` et `credit_history` ne sont pas
- *   dans le modèle Cold Start (poids 0 / non inclus). La note globale est
- *   renormalisée sur les facteurs restants.
+ * ## Prérequis métier (IMF)
+ * Une demande n’est éligible que si le client dispose d’au moins un compte
+ * en banque ou en institution (table `financial_accounts`). Le mode Cold Start
+ * a été retiré : absence de compte ≠ dossier scoré autrement.
+ *
+ * ## Mode
+ * STANDARD uniquement : historique d’épargne / crédit / compte institutionnel.
  *
  * ## Sous-notes (0 à 100) — barèmes de prototype, non officiels IMF
- * - repayment_capacity : ratio reste à vivre / mensualité estimée
- *   (≥2 → 95, ≥1,5 → 85, ≥1,2 → 70, ≥1 → 55, sinon 25).
- * - income_consistency : écart déclaré vs OCR ou CA d’activité
- *   (≤5 % → 95, ≤15 % → 80, ≤25 % → 60, sinon 35 ; pas de référence → 50).
- * - expense : charges / revenu total (≤30 % → 95, ≤50 % → 80, ≤70 % → 60, sinon 30).
- * - activity : ancienneté en mois (≥36 → 95, ≥24 → 85, ≥12 → 70, sinon 50 ; sans activité → 60).
- * - activity_vitality : récence des preuves (40 %) + rythme 90 j (35 %) + adéquation durée/cycle (25 %).
- *   Signal manquant → 50, jamais 0. Stock/récolte → 3–6 mois ; équipement → 10–18 ; sinon 6–12.
- * - document : base 90, −15 par anomalie ouverte, −10 par anomalie critique, +5 par pièce (borné 10–100).
- * - savings (STANDARD seulement) : solde moyen / montant demandé
- *   (≥50 % → 95, ≥20 % → 80, ≥10 % → 65, sinon 45) + bonus régularité (6 dépôts +2, 12 dépôts +5).
- * - credit_history (STANDARD seulement) : défaut → 10 ; sinon 95 − 15 × échéances en retard (plancher 20).
- * - guarantee : valeur vérifiée (ou déclarée) / montant demandé
- *   (≥100 % → 95, ≥70 % → 80, ≥50 % → 65, sinon 45 ; sans garantie → 50).
- * - residential_zone : localisation ville+zone renseignée → 80, sinon 55 (facteur contextuel, souvent inactif).
+ * - repayment_capacity, income_consistency, expense, activity, activity_vitality,
+ *   document, savings, credit_history, guarantee, residential_zone (souvent inactif).
  *
- * ## Pondérations V1 (règles ACTIVE du seeder — la zone résidentielle est INACTIVE, poids 0)
- * STANDARD (historique d’épargne et/ou de crédit) — somme utile = 100 % :
+ * ## Pondérations V1 (règles ACTIVE — zone résidentielle INACTIVE, poids 0)
+ * STANDARD — somme utile = 100 % :
  *   repayment_capacity 25 %, activity_vitality 15 %, income_consistency 10 %,
  *   activity 5 %, expense 10 %, document 10 %, savings 10 %, credit_history 10 %, guarantee 5 %.
- * COLD_START (ni épargne ni crédit antérieur dans le modèle) — somme utile = 100 % :
- *   repayment_capacity 30 %, activity_vitality 20 %, income_consistency 15 %,
- *   activity 10 %, expense 10 %, document 10 %, guarantee 5 %.
- * Les facteurs `savings` et `credit_history` n’ont pas de règle Cold Start : ils sont
- * calculés en interne pour l’explicabilité mais `included = false`, donc hors note globale.
  *
  * ## Note globale
- * Chaque facteur INCLUS (règle ACTIVE du modèle) contribue : score × (poids / 100).
- * Si la somme des poids actifs ≠ 100, le total est renormalisé. Résultat borné 0–100.
- * Les poids concrets vivent dans `scoring_rules` et peuvent être ajustés par l’admin
- * sans modifier ce moteur.
+ * Chaque facteur INCLUS contribue : score × (poids / 100), renormalisé si besoin.
+ * Puis **plafond de prudence** (`config('credit.scoring.overall_score_ceiling')`, défaut 95) :
+ * le score global n’atteint jamais 100 %.
  *
  * ## Recommandation (aide seulement)
  * FAVORABLE si score ≥ 70 et capacité SUFFICIENT ; RESERVED si ≥ 50 et SUFFICIENT ;
@@ -79,8 +59,8 @@ class CreditScoringEngine
     ) {}
 
     /**
-     * Calcule l’analyse explicable d’une demande : anomalies, mode STANDARD/COLD_START,
-     * sous-notes 0–100, agrégation pondérée, score de confiance et recommandation d’aide.
+     * Calcule l’analyse explicable d’une demande : anomalies, modèle STANDARD,
+     * sous-notes 0–100, agrégation pondérée plafonnée, confiance et recommandation.
      */
     public function evaluateCreditRequest(CreditRequest $creditRequest): CreditAnalysis
     {
@@ -97,6 +77,12 @@ class CreditScoringEngine
             'guarantees',
         ]);
 
+        if ($creditRequest->client->financialAccounts->isEmpty()) {
+            throw new RuntimeException(
+                'Scoring impossible : le client doit disposer d’un compte en banque ou en institution.'
+            );
+        }
+
         $this->anomalyService->detectAnomalies($creditRequest);
         $creditRequest->load('anomalies');
 
@@ -107,7 +93,7 @@ class CreditScoringEngine
             $factorResults = $this->calculateFactorScores($creditRequest, $model, $scoringMode);
 
             $overallScore = $this->aggregateOverallScore($factorResults);
-            $confidenceScore = $this->calculateConfidenceScore($creditRequest, $scoringMode);
+            $confidenceScore = $this->calculateConfidenceScore($creditRequest);
             $repaymentCapacity = $creditRequest->repayment_capacity_status;
             $recommendation = match (true) {
                 $overallScore >= 70.0 && $repaymentCapacity === RepaymentCapacityStatus::Sufficient => ScoringRecommendation::Favorable,
@@ -133,7 +119,7 @@ class CreditScoringEngine
                 'overall_score' => $overallScore,
                 'confidence_score' => $confidenceScore,
                 'recommendation' => $recommendation,
-                'analysis_summary' => $this->generateAnalysisSummary($creditRequest, $model, $overallScore, $scoringMode, $recommendation),
+                'analysis_summary' => $this->generateAnalysisSummary($creditRequest, $model, $overallScore, $recommendation),
             ]);
 
             foreach ($factorResults as $type => $data) {
@@ -166,22 +152,15 @@ class CreditScoringEngine
     }
 
     /**
-     * STANDARD dès qu’un historique d’épargne ou de crédit institutionnel existe ;
-     * sinon COLD_START. On ne pénalise pas l’absence d’historique.
+     * Unique mode conservé : STANDARD (compte institutionnel obligatoire en amont).
      */
     public function resolveScoringMode(CreditRequest $creditRequest): ScoringMode
     {
-        $hasCreditHistory = $creditRequest->client->loans->isNotEmpty();
-        $hasSavingsHistory = $creditRequest->client->savingsHistories->isNotEmpty();
-
-        return ($hasCreditHistory || $hasSavingsHistory)
-            ? ScoringMode::Standard
-            : ScoringMode::ColdStart;
+        return ScoringMode::Standard;
     }
 
     /**
-     * Charge le modèle ACTIVE du mode choisi (STANDARD ou COLD_START) et ses règles ACTIVE.
-     * Sans modèle, le calcul s’arrête : on ne mélange jamais les deux barèmes.
+     * Charge le modèle ACTIVE STANDARD et ses règles ACTIVE.
      */
     protected function resolveActiveModel(ScoringMode $scoringMode): ScoringModel
     {
@@ -203,7 +182,7 @@ class CreditScoringEngine
     }
 
     /**
-     * Combine les sous-notes incluses : Σ (score × poids/100), renormalisé si besoin.
+     * Combine les sous-notes incluses puis applique le plafond de prudence (< 100).
      *
      * @param  array<string, array<string, mixed>>  $factorResults
      */
@@ -226,18 +205,21 @@ class CreditScoringEngine
             $weighted = $weighted / ($totalWeight / 100);
         }
 
-        return round(min(100.0, max(0.0, $weighted)), 2);
+        $ceiling = (float) config('credit.scoring.overall_score_ceiling', 95.0);
+        $ceiling = min(99.99, max(1.0, $ceiling));
+
+        return round(min($ceiling, max(0.0, $weighted)), 2);
     }
 
     /**
      * Applique les poids du modèle actif : un facteur n’entre dans la note globale
-     * que s’il existe une règle ACTIVE de même `factor_type` (ex. pas d’épargne en Cold Start).
+     * que s’il existe une règle ACTIVE de même `factor_type`.
      *
      * @return array<string, array<string, mixed>>
      */
     protected function calculateFactorScores(CreditRequest $request, ScoringModel $model, ScoringMode $mode): array
     {
-        $computed = $this->computeRawFactorScores($request, $mode);
+        $computed = $this->computeRawFactorScores($request);
         $results = [];
 
         foreach ($computed as $type => $data) {
@@ -256,12 +238,11 @@ class CreditScoringEngine
     }
 
     /**
-     * Calcule chaque sous-note 0–100 selon les barèmes de prototype ci-dessus.
-     * Ne persiste rien : l’inclusion et le poids sont tranchés ensuite par le modèle.
+     * Calcule chaque sous-note 0–100 selon les barèmes de prototype.
      *
      * @return array<string, array<string, mixed>>
      */
-    protected function computeRawFactorScores(CreditRequest $request, ScoringMode $mode): array
+    protected function computeRawFactorScores(CreditRequest $request): array
     {
         $client = $request->client;
         $profile = $client->financialProfile;
@@ -272,7 +253,6 @@ class CreditScoringEngine
         $monthlyPayment = (float) $request->estimated_monthly_payment;
         $capRatio = $monthlyPayment > 0 ? ($disposable / $monthlyPayment) : 1.0;
 
-        // Capacité de remboursement : reste à vivre / mensualité estimée → 25 / 55 / 70 / 85 / 95.
         $capacityScore = match (true) {
             $capRatio >= 2.0 => 95.0,
             $capRatio >= 1.5 => 85.0,
@@ -289,7 +269,6 @@ class CreditScoringEngine
             ? abs($declaredIncome - $referenceIncome) / $declaredIncome
             : 0;
 
-        // Cohérence des revenus : écart déclaré vs OCR (prioritaire) ou CA d’activité.
         $incomeConsistencyScore = match (true) {
             $referenceIncome <= 0 => 50.0,
             $diffPercent <= 0.05 => 95.0,
@@ -305,7 +284,6 @@ class CreditScoringEngine
         $totalExpenses = (float) ($profile?->monthly_expenses ?? $request->declared_monthly_expenses);
         $expenseRatio = $totalIncome > 0 ? ($totalExpenses / $totalIncome) : 0.8;
 
-        // Charges : dépenses / revenu total. Sans revenu, ratio par défaut 80 % (sous-note 30).
         $expenseScore = match (true) {
             $expenseRatio <= 0.30 => 95.0,
             $expenseRatio <= 0.50 => 80.0,
@@ -313,7 +291,6 @@ class CreditScoringEngine
             default => 30.0,
         };
 
-        // Activité : 60 sans fiche ; sinon ancienneté en mois (12 / 24 / 36).
         $activityScore = 60.0;
         if ($activity) {
             $seniorityMonths = $activity->start_date ? now()->diffInMonths($activity->start_date) : 0;
@@ -331,16 +308,14 @@ class CreditScoringEngine
             ->where('status', AnomalyStatus::Open)
             ->where('severity', AnomalySeverity::Critical)
             ->count();
-        // Justificatifs : base 90, −15 / anomalie ouverte, −10 / anomalie critique, +5 / pièce (10–100).
         $documentScore = max(10.0, 90.0 - ($openAnomaliesCount * 15.0) - ($criticalAnomalies * 10.0) + ($docCount * 5.0));
         $documentScore = min(100.0, $documentScore);
 
         $savingsHistories = $client->savingsHistories;
         $savingsAvailable = $savingsHistories->isNotEmpty();
         $savingsScore = 0.0;
-        $savingsExplanation = 'Aucune donnée d’épargne institutionnelle exploitable — non assimilé à un mauvais historique.';
+        $savingsExplanation = 'Aucune donnée d’épargne institutionnelle exploitée pour ce calcul (compte requis, historique d’épargne encore mince).';
 
-        // Épargne (STANDARD seulement à l’agrégation) : solde moyen / montant + bonus de régularité.
         if ($savingsAvailable) {
             $avgBalance = (float) $savingsHistories->avg('average_balance');
             $depositCount = (int) $savingsHistories->sum('deposit_count');
@@ -357,16 +332,13 @@ class CreditScoringEngine
             $regularityBonus = $depositCount >= 12 ? 5.0 : ($depositCount >= 6 ? 2.0 : 0.0);
             $savingsScore = min(100.0, $balanceScore + $regularityBonus);
             $savingsExplanation = "Historique d’épargne disponible (solde moyen {$avgBalance} FCFA, {$depositCount} dépôts).";
-        } elseif ($mode === ScoringMode::ColdStart) {
-            $savingsExplanation = 'Cold Start : l’épargne n’est pas un facteur du modèle — absence d’historique ≠ mauvais historique.';
         }
 
         $loans = $client->loans;
         $creditHistoryAvailable = $loans->isNotEmpty();
         $creditHistoryScore = 0.0;
-        $creditHistoryExplanation = 'Aucun crédit antérieur connu — non assimilé à un mauvais historique.';
+        $creditHistoryExplanation = 'Aucun crédit antérieur connu — le compte institutionnel existe, sans historique de remboursement.';
 
-        // Historique de crédit (STANDARD seulement à l’agrégation) : défaut = 10, sinon 95 − 15 × retards.
         if ($creditHistoryAvailable) {
             $hasDefault = $loans->contains(fn ($loan): bool => $loan->status === LoanStatus::Defaulted);
             if ($hasDefault) {
@@ -378,11 +350,8 @@ class CreditScoringEngine
                 $creditHistoryScore = max(20.0, 95.0 - ($lateCount * 15.0));
                 $creditHistoryExplanation = "Historique des crédits passés et ponctualité ({$lateCount} échéance(s) en retard).";
             }
-        } elseif ($mode === ScoringMode::ColdStart) {
-            $creditHistoryExplanation = 'Cold Start : l’historique de crédit n’est pas un facteur du modèle.';
         }
 
-        // Garantie : 50 sans bien ; sinon valeur vérifiée (à défaut déclarée) / montant demandé.
         $guaranteeScore = 50.0;
         $guarantee = $request->guarantees->first();
         if ($guarantee) {
@@ -398,7 +367,6 @@ class CreditScoringEngine
             };
         }
 
-        // Zone d’habitation : facteur contextuel (souvent INACTIVE / poids 0 dans le seeder V1).
         $zoneFilled = filled($client->residential_zone) && filled($client->city);
         $zoneScore = $zoneFilled ? 80.0 : 55.0;
 
@@ -487,10 +455,9 @@ class CreditScoringEngine
     }
 
     /**
-     * Score de confiance (30–100), distinct de la note métier :
-     * moyenne des confiances OCR (ou 45/70 sans pièce), −8 en Cold Start, −5 par anomalie ouverte (plafond −25).
+     * Score de confiance (30–100), distinct de la note métier.
      */
-    protected function calculateConfidenceScore(CreditRequest $request, ScoringMode $mode): float
+    protected function calculateConfidenceScore(CreditRequest $request): float
     {
         $docs = $request->documents;
         $base = $docs->isEmpty() ? 45.0 : 70.0;
@@ -498,10 +465,6 @@ class CreditScoringEngine
         if ($docs->isNotEmpty()) {
             $confidences = $docs->map(fn ($doc): float => (float) ($doc->extraction?->extraction_confidence ?? 70.0));
             $base = (float) $confidences->avg();
-        }
-
-        if ($mode === ScoringMode::ColdStart) {
-            $base -= 8.0;
         }
 
         $openAnomalies = $request->anomalies->where('status', AnomalyStatus::Open)->count();
@@ -514,13 +477,10 @@ class CreditScoringEngine
         CreditRequest $request,
         ScoringModel $model,
         float $score,
-        ScoringMode $mode,
         ScoringRecommendation $recommendation
     ): string {
-        $modeText = $mode === ScoringMode::ColdStart
-            ? 'Cold Start (sans historique bancaire exploitable)'
-            : 'Standard (historique institutionnel disponible)';
+        $ceiling = (float) config('credit.scoring.overall_score_ceiling', 95.0);
 
-        return "Évaluation du dossier #{$request->id} — {$model->name} {$model->version} (mode {$modeText}) : score global = {$score}/100. Recommandation d’aide à la décision : {$recommendation->value}. Cette note oriente l’équipe ; la décision d’octroi reste humaine.";
+        return "Évaluation du dossier #{$request->id} — {$model->name} {$model->version} (mode STANDARD) : score global = {$score}/100 (plafond de prudence {$ceiling}). Recommandation d’aide à la décision : {$recommendation->value}. Cette note oriente l’équipe ; la décision d’octroi reste humaine.";
     }
 }

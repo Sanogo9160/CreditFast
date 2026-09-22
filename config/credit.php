@@ -9,6 +9,14 @@ return [
     'repayment_margin_percentage' => (float) env('CREDIT_REPAYMENT_MARGIN', 20.0),
 
     /*
+    | Scoring: overall note never reaches 100 (prudence margin / score ceiling).
+    | A credit request also requires at least one bank/IMF financial account.
+    */
+    'scoring' => [
+        'overall_score_ceiling' => (float) env('CREDIT_SCORE_CEILING', 95.0),
+    ],
+
+    /*
     | Comptes internes de démarrage (pas de clients ni de dossiers fictifs).
     | Changer STAFF_BOOTSTRAP_PASSWORD après le premier déploiement.
     */

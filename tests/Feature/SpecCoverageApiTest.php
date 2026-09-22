@@ -189,9 +189,9 @@ class SpecCoverageApiTest extends TestCase
         $this->getJson('/api/admin/audit-logs')->assertOk();
         $this->getJson('/api/admin/scoring-models')->assertOk();
         $this->postJson('/api/admin/scoring-models', [
-            'name' => 'Prototype Cold Start V1.1',
+            'name' => 'Prototype Standard V1.1',
             'version' => 'V1.1',
-            'scoring_mode' => ScoringMode::ColdStart->value,
+            'scoring_mode' => ScoringMode::Standard->value,
             'description' => 'Version de démonstration',
         ])->assertCreated();
     }

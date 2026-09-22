@@ -274,6 +274,19 @@ class CreditRequestController extends Controller
     {
         $this->authorize('submit', $creditRequest);
 
+        $creditRequest->loadMissing('client.financialAccounts');
+
+        if ($creditRequest->client === null || $creditRequest->client->financialAccounts->isEmpty()) {
+            return response()->json([
+                'message' => 'La demande ne peut pas être transmise sans compte en banque ou en institution.',
+                'errors' => [
+                    'client' => [
+                        'Une demande de crédit nécessite un compte en banque ou en institution. Contactez votre chargé de crédit pour l’enregistrer.',
+                    ],
+                ],
+            ], 422);
+        }
+
         $updated = $this->workflowService->transitionStatus(
             $creditRequest,
             CreditRequestStatus::Submitted,

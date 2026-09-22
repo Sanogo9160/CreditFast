@@ -50,7 +50,7 @@ MD
 #[OA\Tag(name: 'Comité', description: 'Décision d’octroi. Rôles : Membre du comité, Admin.')]
 #[OA\Tag(name: 'Prêts', description: 'Consultation (Client + staff). Décaissement et remboursement : Chargé et Admin uniquement.')]
 #[OA\Tag(name: 'Notifications', description: 'CRUD des notifications de l’utilisateur connecté (lister, lire, marquer lue, supprimer).')]
-#[OA\Tag(name: 'Administration', description: 'CRUD comptes internes (désactivation, réinitialisation du mot de passe), modèles de scoring, audit. Rôle : Admin.')]
+#[OA\Tag(name: 'Administration', description: 'CRUD comptes (désactivation, réinitialisation du mot de passe), modèles de scoring, audit. Rôle : Admin.')]
 #[OA\Tag(name: 'Simulation', description: 'Comparaison de mensualités. Utilisateur authentifié.')]
 #[OA\Parameter(
     parameter: 'CreditRequestId',

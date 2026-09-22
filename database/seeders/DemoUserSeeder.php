@@ -161,7 +161,7 @@ class DemoUserSeeder extends Seeder
             ]
         );
 
-        // 3. Client Cold Start (New Applicant without banking history)
+        // 3. Second demo client (with institutional account — required for credit)
         $userColdStart = User::updateOrCreate(
             ['email' => 'client.coldstart@creditfast.com'],
             [
@@ -214,6 +214,30 @@ class DemoUserSeeder extends Seeder
             ]
         );
 
+        $accountColdStart = $clientColdStart->financialAccounts()->updateOrCreate(
+            ['account_number' => 'ACC-ML-2024-1022'],
+            [
+                'account_type' => 'SAVINGS',
+                'balance' => 280000,
+                'opened_at' => '2023-03-01',
+                'status' => 'ACTIVE',
+            ]
+        );
+
+        $clientColdStart->savingsHistories()->updateOrCreate(
+            ['account_id' => $accountColdStart->id],
+            [
+                'period_start' => now()->subMonths(4)->toDateString(),
+                'period_end' => now()->toDateString(),
+                'total_deposits' => 520000,
+                'total_withdrawals' => 240000,
+                'deposit_count' => 8,
+                'withdrawal_count' => 5,
+                'average_balance' => 210000,
+                'closing_balance' => 280000,
+            ]
+        );
+
         // 4. Create Sample Credit Requests & Run Scoring Engine
         $ocrService = app(OcrExtractionService::class);
         $scoringEngine = app(CreditScoringEngine::class);
@@ -260,7 +284,7 @@ class DemoUserSeeder extends Seeder
 
         $scoringEngine->evaluateCreditRequest($reqStandard);
 
-        // Cold Start Credit Request
+        // Second demo credit request (institutional account required)
         $reqColdStart = CreditRequest::updateOrCreate(
             ['client_id' => $clientColdStart->id, 'purpose' => 'Achat de 2 machines à coudre industrielles'],
             [

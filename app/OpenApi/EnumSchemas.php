@@ -241,11 +241,10 @@ MD,
     description: <<<'MD'
 Mode du modèle de scoring.
 
-- `STANDARD` — modèle complet
-- `COLD_START` — prototype / peu d’historique
+- `STANDARD` — modèle unique : dossier avec compte en banque ou institution (IMF). Le Cold Start a été retiré.
 MD,
-    enum: ['STANDARD', 'COLD_START'],
-    example: 'COLD_START'
+    enum: ['STANDARD'],
+    example: 'STANDARD'
 )]
 #[OA\Schema(
     schema: 'ScoringModelStatus',

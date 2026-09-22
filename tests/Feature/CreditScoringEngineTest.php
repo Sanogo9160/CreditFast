@@ -30,7 +30,11 @@ class CreditScoringEngineTest extends TestCase
 
         $this->assertNotNull($analysis);
         $this->assertGreaterThanOrEqual(0, (float) $analysis->overall_score);
-        $this->assertLessThanOrEqual(100, (float) $analysis->overall_score);
+        $this->assertLessThanOrEqual(
+            (float) config('credit.scoring.overall_score_ceiling'),
+            (float) $analysis->overall_score
+        );
+        $this->assertNotEquals(100.0, (float) $analysis->overall_score);
         $this->assertEquals(ScoringMode::Standard, $analysis->scoringModel->scoring_mode);
         $this->assertCount(9, $analysis->factors);
         $this->assertTrue($analysis->factors->contains(
@@ -41,14 +45,15 @@ class CreditScoringEngineTest extends TestCase
         ));
     }
 
-    public function test_cold_start_credit_scoring_evaluation(): void
+    public function test_scoring_uses_standard_mode_for_all_eligible_clients(): void
     {
         $user = User::where('email', 'client.coldstart@creditfast.com')->firstOrFail();
         $creditRequest = CreditRequest::where('client_id', $user->client->id)->firstOrFail();
 
         $engine = app(CreditScoringEngine::class);
 
-        $this->assertEquals(ScoringMode::ColdStart, $engine->resolveScoringMode($creditRequest->loadMissing([
+        $this->assertEquals(ScoringMode::Standard, $engine->resolveScoringMode($creditRequest->loadMissing([
+            'client.financialAccounts',
             'client.loans',
             'client.savingsHistories',
         ])));
@@ -56,13 +61,30 @@ class CreditScoringEngineTest extends TestCase
         $analysis = $engine->evaluateCreditRequest($creditRequest);
 
         $this->assertNotNull($analysis);
-        $this->assertGreaterThanOrEqual(0, (float) $analysis->overall_score);
-        $this->assertLessThanOrEqual(100, (float) $analysis->overall_score);
-        $this->assertEquals(ScoringMode::ColdStart, $analysis->scoringModel->scoring_mode);
-        $this->assertCount(7, $analysis->factors);
+        $this->assertEquals(ScoringMode::Standard, $analysis->scoringModel->scoring_mode);
+        $this->assertLessThanOrEqual(
+            (float) config('credit.scoring.overall_score_ceiling'),
+            (float) $analysis->overall_score
+        );
+        $this->assertCount(9, $analysis->factors);
         $this->assertTrue($analysis->factors->contains(
             fn ($factor): bool => $factor->factor_type === FactorType::ActivityVitality
         ));
-        $this->assertFalse($analysis->factors->contains(fn ($factor): bool => in_array($factor->factor_type->value, ['savings', 'credit_history'], true)));
+        $this->assertTrue($analysis->factors->contains(
+            fn ($factor): bool => in_array($factor->factor_type->value, ['savings', 'credit_history'], true)
+        ));
+    }
+
+    public function test_scoring_rejects_client_without_financial_account(): void
+    {
+        $user = User::where('email', 'client.coldstart@creditfast.com')->firstOrFail();
+        $client = $user->client;
+        $client->financialAccounts()->delete();
+        $creditRequest = CreditRequest::where('client_id', $client->id)->firstOrFail();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('compte en banque ou en institution');
+
+        app(CreditScoringEngine::class)->evaluateCreditRequest($creditRequest->fresh());
     }
 }
