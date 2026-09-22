@@ -22,6 +22,10 @@ class Client extends Model
         'company_name',
         'trade_name',
         'registration_number',
+        'tax_id',
+        'rccm_number',
+        'receipt_number',
+        'inps_number',
         'legal_form',
         'date_of_birth',
         'address',
@@ -88,6 +92,11 @@ class Client extends Model
     public function financialAccounts(): HasMany
     {
         return $this->hasMany(FinancialAccount::class);
+    }
+
+    public function bankAccountApplications(): HasMany
+    {
+        return $this->hasMany(BankAccountApplication::class);
     }
 
     public function savingsHistories(): HasMany

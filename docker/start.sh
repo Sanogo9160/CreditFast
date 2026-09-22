@@ -16,10 +16,11 @@ php artisan view:cache
 # One-shot full wipe when CREDITFAST_RESET_DATABASE=true (then set it back to false).
 if [ "${CREDITFAST_RESET_DATABASE:-false}" = "true" ]; then
     php artisan migrate:fresh --force --seed --no-interaction
+    php artisan users:keep-admin-only --force
 else
+    # Safe deploy: apply new migrations + idempotent seeders only (no wipe, no user purge).
     php artisan migrate --force
     php artisan db:seed --force --no-interaction
-    php artisan users:keep-admin-only --force
 fi
 
 php artisan l5-swagger:generate

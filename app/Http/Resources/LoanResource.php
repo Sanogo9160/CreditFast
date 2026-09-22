@@ -20,6 +20,9 @@ class LoanResource extends JsonResource
             'interest_amount' => (float) $this->interest_amount,
             'total_amount' => (float) $this->total_amount,
             'duration_months' => (int) $this->duration_months,
+            'annual_interest_rate_percent' => $this->annual_interest_rate_percent !== null
+                ? (float) $this->annual_interest_rate_percent
+                : null,
             'monthly_payment' => (float) $this->monthly_payment,
             'disbursed_at' => $this->disbursed_at?->format('Y-m-d'),
             'funds_received' => $this->disbursed_at ? (float) $this->principal_amount : 0.0,

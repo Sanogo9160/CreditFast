@@ -27,6 +27,7 @@ class LoanDisbursementTest extends TestCase
         $loan = $this->approveStandardClientLoan();
 
         $this->assertEquals(LoanStatus::Approved, $loan->status);
+        $this->assertSame(15.0, (float) $loan->annual_interest_rate_percent);
         $this->assertNull($loan->disbursed_at);
         $this->assertSame(0, $loan->repayments()->count());
         $this->assertEquals(CreditRequestStatus::Approved, $loan->creditRequest->status);

@@ -21,19 +21,23 @@ class LoanService
     public function __construct(
         protected FinancialCalculationService $financialService,
         protected CreditWorkflowService $workflowService,
+        protected InterestRateService $interestRates,
     ) {}
 
     /**
      * Persist the granted loan after a committee approval. The schedule is
      * generated only at disbursement so due dates follow the real value date.
      *
-     * @param  array{approved_amount?: float|int|string, approved_duration_months?: int|string}  $decision
+     * @param  array{
+     *     approved_amount?: float|int|string,
+     *     approved_duration_months?: int|string
+     * }  $decision
      */
     public function createApprovedLoan(CreditRequest $creditRequest, array $decision = []): Loan
     {
         $principal = (float) ($decision['approved_amount'] ?? $creditRequest->requested_amount);
         $duration = (int) ($decision['approved_duration_months'] ?? $creditRequest->duration_months);
-        $rate = $this->financialService->defaultAnnualInterestRate();
+        $rate = $this->interestRates->institutionalRate();
         $monthlyPayment = $this->financialService->calculateEstimatedMonthlyPayment($principal, $duration, $rate);
         $totalInterest = round(($monthlyPayment * $duration) - $principal, 2);
         $totalAmount = round($principal + $totalInterest, 2);
@@ -46,6 +50,7 @@ class LoanService
                 'interest_amount' => $totalInterest,
                 'total_amount' => $totalAmount,
                 'duration_months' => $duration,
+                'annual_interest_rate_percent' => $rate,
                 'monthly_payment' => $monthlyPayment,
                 'disbursed_at' => null,
                 'maturity_date' => null,

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             ScoringModelSeeder::class,
+            CaisseSeeder::class,
         ]);
 
         if (app()->runningUnitTests()) {

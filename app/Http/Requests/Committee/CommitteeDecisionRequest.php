@@ -13,6 +13,9 @@ class CommitteeDecisionRequest extends FormRequest
         return $this->user()?->can('decide', $this->route('creditRequest')) ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -20,6 +23,17 @@ class CommitteeDecisionRequest extends FormRequest
             'approved_amount' => ['required_if:decision,APPROVED,AMENDED', 'nullable', 'numeric', 'min:10000'],
             'approved_duration_months' => ['required_if:decision,APPROVED,AMENDED', 'nullable', 'integer', 'min:1', 'max:60'],
             'comment' => ['required', 'string', 'min:5'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'approved_amount' => 'montant approuvé',
+            'approved_duration_months' => 'durée approuvée',
         ];
     }
 }

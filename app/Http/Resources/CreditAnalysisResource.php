@@ -24,6 +24,9 @@ class CreditAnalysisResource extends JsonResource
             'repayment_capacity_score' => (float) $this->repayment_capacity_score,
             'residential_zone_score' => (float) $this->residential_zone_score,
             'overall_score' => (float) $this->overall_score,
+            'proposed_annual_interest_rate' => $this->proposed_annual_interest_rate !== null
+                ? (float) $this->proposed_annual_interest_rate
+                : null,
             'confidence_score' => (float) $this->confidence_score,
             'recommendation' => $this->recommendation?->value ?? $this->recommendation,
             'analysis_summary' => $this->analysis_summary,

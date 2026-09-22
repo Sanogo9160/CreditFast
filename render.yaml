@@ -57,6 +57,6 @@ services:
         value: comite@creditfast.ml
       - key: STAFF_BOOTSTRAP_PASSWORD
         sync: false
-      # Temporary: full wipe+reseed on boot. After Swagger shows 1 admin, set to "false" in Render Dashboard.
+      # false = migrate + seed sans vider la base. Ne remettre à "true" que pour un reset volontaire.
       - key: CREDITFAST_RESET_DATABASE
-        value: "true"
+        value: "false"

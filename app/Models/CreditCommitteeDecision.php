@@ -17,6 +17,7 @@ class CreditCommitteeDecision extends Model
         'decision',
         'approved_amount',
         'approved_duration_months',
+        'annual_interest_rate_percent',
         'comment',
         'decided_at',
     ];
@@ -27,6 +28,7 @@ class CreditCommitteeDecision extends Model
             'decision' => CommitteeDecision::class,
             'approved_amount' => 'decimal:2',
             'approved_duration_months' => 'integer',
+            'annual_interest_rate_percent' => 'decimal:2',
             'decided_at' => 'datetime',
         ];
     }

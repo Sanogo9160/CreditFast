@@ -121,7 +121,7 @@ class DemoUserSeeder extends Seeder
             ]
         );
 
-        $finService = new FinancialCalculationService;
+        $finService = app(FinancialCalculationService::class);
         $disposableStandard = $finService->calculateDisposableIncome(850000, 100000, 300000, 50000);
 
         FinancialProfile::updateOrCreate(

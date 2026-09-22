@@ -28,6 +28,7 @@ class CreditAnalysis extends Model
         'repayment_capacity_score',
         'residential_zone_score',
         'overall_score',
+        'proposed_annual_interest_rate',
         'confidence_score',
         'recommendation',
         'analysis_summary',
@@ -49,6 +50,7 @@ class CreditAnalysis extends Model
             'repayment_capacity_score' => 'decimal:2',
             'residential_zone_score' => 'decimal:2',
             'overall_score' => 'decimal:2',
+            'proposed_annual_interest_rate' => 'decimal:2',
             'confidence_score' => 'decimal:2',
             'recommendation' => ScoringRecommendation::class,
         ];

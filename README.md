@@ -123,7 +123,8 @@ Chaque demande enregistre aussi un snapshot `borrower_type` (= `client_type` au 
 
 ```
 Client inscrit
-  → complète profil / KYC / activité / profil financier
+  → complète profil / KYC
+  → **adhésion compte** (`/api/bank-account-applications`) : fiche PP ou PM → agent vérifie → compte ouvert (N° auto)
   → GET /api/credit-products
   → POST /api/credit-requests (+ documents, garanties)
   → POST .../submit
@@ -137,9 +138,19 @@ Client inscrit
   Prêt (/api/loans/…) : décaissement & remboursements
 ```
 
+**Adhésion compte bancaire** : endpoints séparés PP / PM.
+- Client PP : `/api/bank-account-applications/physical-person`
+- Client PM : `/api/bank-account-applications/legal-entity`
+- Agent PP : `/api/agent/bank-account-applications/physical-person`
+- Agent PM : `/api/agent/bank-account-applications/legal-entity`
+
+Le client choisit **Caisse** + **Guichet** (`GET /api/caisses`). L’agent vérifie : renvoi (`RETURNED`), refus, ou approbation (N° unique `{CAISSE}-{GUICHET}-{YYYY}{seq}`). Chaque guichet ≥ 1 case. **Pas de classification risque / PPE.** Admin CRUD : tag Swagger **Administration caisses** — `/api/admin/caisses|guichets|cash-desks` (créer, lire, modifier, supprimer). Ordre : caisse → guichet → ≥ 1 case.
+
 **Visites terrain** (`/api/agent/field-visits`) : le chargé planifie un rendez-vous (`SCHEDULED`), démarre sur place (`IN_PROGRESS`), puis clôture avec un rapport (`COMPLETED` + `FAVORABLE`/`RESERVED`/`UNFAVORABLE`). Annulation ou absence client : `CANCELLED` / `NO_SHOW`. La visite aide la décision ; elle ne remplace pas le comité.
 
-Scoring : moteur `CreditScoringEngine` (scorecard + `activity_vitality`). Modèle **STANDARD** uniquement — compte banque/IMF obligatoire. Note globale plafonnée (`CREDIT_SCORE_CEILING`, défaut 95) : marge de prudence, jamais 100 %.  
+Scoring : moteur `CreditScoringEngine` (scorecard + `activity_vitality`). Modèle **STANDARD** uniquement — compte banque/IMF obligatoire. Note globale plafonnée (`CREDIT_SCORE_CEILING`, défaut 95) : marge de prudence, jamais 100 %.
+
+**Taux d’intérêt** : **15 %** unique pour tous les dossiers (`CREDIT_ANNUAL_INTEREST_RATE`). Appliqué à la simulation, au scoring (`proposed_annual_interest_rate`) et au prêt. Le client et le comité ne le modifient pas.  
 Admin : comptes, modèles de scoring, audit (`/api/admin/…`).
 
 ---

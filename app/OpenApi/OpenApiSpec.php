@@ -51,8 +51,35 @@ MD
 #[OA\Tag(name: 'Comité', description: 'Décision d’octroi. Rôles : Membre du comité, Admin.')]
 #[OA\Tag(name: 'Prêts', description: 'Consultation (Client + staff). Décaissement et remboursement : Chargé et Admin uniquement.')]
 #[OA\Tag(name: 'Notifications', description: 'CRUD des notifications de l’utilisateur connecté (lister, lire, marquer lue, supprimer).')]
+#[OA\Tag(name: 'Adhésion compte PP', description: 'Fiche d’adhésion personne physique. Client PHYSICAL_PERSON + file agent PP. Pas de classification risque.')]
+#[OA\Tag(name: 'Adhésion compte PM', description: 'Fiche d’adhésion personne morale (dirigeants, UBO). Client LEGAL_ENTITY + file agent PM. Pas de classification risque.')]
 #[OA\Tag(name: 'Administration', description: 'CRUD comptes (désactivation, réinitialisation du mot de passe), modèles de scoring, audit. Rôle : Admin.')]
+#[OA\Tag(name: 'Administration caisses', description: 'CRUD du référentiel institutionnel : Caisse → Guichet → Case. Rôle : Admin. Ordre conseillé : créer caisse, puis guichet, puis au moins une case.')]
 #[OA\Tag(name: 'Simulation', description: 'Comparaison de mensualités. Utilisateur authentifié.')]
+#[OA\Parameter(
+    parameter: 'CaisseId',
+    name: 'caisse',
+    description: 'Identifiant de la caisse',
+    in: 'path',
+    required: true,
+    schema: new OA\Schema(type: 'integer', example: 1)
+)]
+#[OA\Parameter(
+    parameter: 'GuichetId',
+    name: 'guichet',
+    description: 'Identifiant du guichet',
+    in: 'path',
+    required: true,
+    schema: new OA\Schema(type: 'integer', example: 1)
+)]
+#[OA\Parameter(
+    parameter: 'CashDeskId',
+    name: 'cashDesk',
+    description: 'Identifiant de la case (till)',
+    in: 'path',
+    required: true,
+    schema: new OA\Schema(type: 'integer', example: 1)
+)]
 #[OA\Parameter(
     parameter: 'FieldVisitId',
     name: 'fieldVisit',

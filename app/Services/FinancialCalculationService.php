@@ -8,6 +8,8 @@ use Carbon\CarbonInterface;
 
 class FinancialCalculationService
 {
+    public function __construct(protected InterestRateService $interestRates) {}
+
     /**
      * Calculate disposable income (Reste à vivre).
      * Disposable Income = (Monthly Income + Other Income) - (Monthly Expenses + Existing Debt Payments)
@@ -91,7 +93,7 @@ class FinancialCalculationService
 
     public function defaultAnnualInterestRate(): float
     {
-        return (float) config('credit.annual_interest_rate_percent', 12.0);
+        return $this->interestRates->defaultRate();
     }
 
     /**

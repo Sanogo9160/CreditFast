@@ -62,7 +62,7 @@ class InstallmentSimulationTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('annual_interest_rate_percent', 12);
+            ->assertJsonPath('annual_interest_rate_percent', 15);
         $this->assertGreaterThan(100000, $response->json('scenarios.0.estimated_monthly_payment'));
     }
 }

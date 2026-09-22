@@ -75,7 +75,7 @@ class CreditSimulationService
                 'disposable_income' => $disposable,
             ],
             'annual_interest_rate_percent' => $rate,
-            'disclaimer' => 'Simulation d’aide à la décision. Le taux est un prototype institutionnel. Le score et cette simulation ne décident pas de l’octroi.',
+            'disclaimer' => 'Simulation d’aide à la décision. Taux d’intérêt institutionnel unique (15 %). Le score et cette simulation ne décident pas de l’octroi.',
             'scenarios' => $compared,
         ];
     }

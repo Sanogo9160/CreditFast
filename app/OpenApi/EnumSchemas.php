@@ -321,9 +321,10 @@ Type de pièce d’identité du profil (KYC). Chaîne libre (80 car. max) ; vale
 
 - `CNI` — carte nationale d’identité
 - `PASSEPORT`
+- `NINA`
 - `PIECE_IDENTITE`
 MD,
-    enum: ['CNI', 'PASSEPORT', 'PIECE_IDENTITE'],
+    enum: ['CNI', 'PASSEPORT', 'NINA', 'PIECE_IDENTITE'],
     example: 'CNI'
 )]
 #[OA\Schema(
@@ -394,8 +395,38 @@ Type de notification envoyée à l’utilisateur.
 - `LOAN_DISBURSED` — fonds décaissés
 - `PASSWORD_RESET` — mot de passe réinitialisé par un admin
 - `FIELD_VISIT` — rendez-vous ou rapport de visite terrain
+- `BANK_ACCOUNT_APPLICATION` — adhésion / ouverture de compte
 MD,
-    enum: ['STATUS_UPDATE', 'COMPLEMENTS_REQUESTED', 'LOAN_DISBURSED', 'PASSWORD_RESET', 'FIELD_VISIT'],
+    enum: ['STATUS_UPDATE', 'COMPLEMENTS_REQUESTED', 'LOAN_DISBURSED', 'PASSWORD_RESET', 'FIELD_VISIT', 'BANK_ACCOUNT_APPLICATION'],
     example: 'STATUS_UPDATE'
+)]
+#[OA\Schema(
+    schema: 'BankAccountApplicationStatus',
+    type: 'string',
+    description: <<<'MD'
+Statut d’une fiche d’adhésion compte bancaire.
+
+- `DRAFT` — brouillon client
+- `SUBMITTED` — en attente de vérification agent
+- `RETURNED` — renvoyée au client (compléments)
+- `APPROVED` — compte créé (N° généré)
+- `REJECTED` — refusée
+MD,
+    enum: ['DRAFT', 'SUBMITTED', 'RETURNED', 'APPROVED', 'REJECTED'],
+    example: 'SUBMITTED'
+)]
+#[OA\Schema(
+    schema: 'Gender',
+    type: 'string',
+    description: 'Sexe — fiche personne physique',
+    enum: ['MALE', 'FEMALE', 'OTHER'],
+    example: 'FEMALE'
+)]
+#[OA\Schema(
+    schema: 'MaritalStatus',
+    type: 'string',
+    description: 'Situation matrimoniale',
+    enum: ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'OTHER'],
+    example: 'MARRIED'
 )]
 class EnumSchemas {}

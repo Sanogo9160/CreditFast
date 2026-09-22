@@ -56,6 +56,7 @@ class CreditScoringEngine
         protected AnomalyDetectionService $anomalyService,
         protected CreditWorkflowService $workflowService,
         protected ActivityVitalityScorer $activityVitalityScorer,
+        protected InterestRateService $interestRates,
     ) {}
 
     /**
@@ -93,6 +94,7 @@ class CreditScoringEngine
             $factorResults = $this->calculateFactorScores($creditRequest, $model, $scoringMode);
 
             $overallScore = $this->aggregateOverallScore($factorResults);
+            $proposedRate = $this->interestRates->proposeFromScore($overallScore);
             $confidenceScore = $this->calculateConfidenceScore($creditRequest);
             $repaymentCapacity = $creditRequest->repayment_capacity_status;
             $recommendation = match (true) {
@@ -117,9 +119,10 @@ class CreditScoringEngine
                 'repayment_capacity_score' => $factorResults[FactorType::RepaymentCapacity->value]['score'] ?? 0,
                 'residential_zone_score' => $factorResults[FactorType::ResidentialZone->value]['score'] ?? 0,
                 'overall_score' => $overallScore,
+                'proposed_annual_interest_rate' => $proposedRate,
                 'confidence_score' => $confidenceScore,
                 'recommendation' => $recommendation,
-                'analysis_summary' => $this->generateAnalysisSummary($creditRequest, $model, $overallScore, $recommendation),
+                'analysis_summary' => $this->generateAnalysisSummary($creditRequest, $model, $overallScore, $recommendation, $proposedRate),
             ]);
 
             foreach ($factorResults as $type => $data) {
@@ -477,10 +480,12 @@ class CreditScoringEngine
         CreditRequest $request,
         ScoringModel $model,
         float $score,
-        ScoringRecommendation $recommendation
+        ScoringRecommendation $recommendation,
+        float $proposedRate
     ): string {
         $ceiling = (float) config('credit.scoring.overall_score_ceiling', 95.0);
+        $rate = $this->interestRates->institutionalRate();
 
-        return "Évaluation du dossier #{$request->id} — {$model->name} {$model->version} (mode STANDARD) : score global = {$score}/100 (plafond de prudence {$ceiling}). Recommandation d’aide à la décision : {$recommendation->value}. Cette note oriente l’équipe ; la décision d’octroi reste humaine.";
+        return "Évaluation du dossier #{$request->id} — {$model->name} {$model->version} (mode STANDARD) : score global = {$score}/100 (plafond de prudence {$ceiling}). Taux d’intérêt institutionnel = {$rate} % (taux unique pour tous les dossiers). Recommandation d’aide à la décision : {$recommendation->value}. La décision d’octroi reste humaine.";
     }
 }

@@ -686,4 +686,192 @@ use OpenApi\Attributes as OA;
         ),
     ]
 )]
+#[OA\Schema(
+    schema: 'StorePhysicalPersonBankAccountApplicationRequest',
+    required: ['caisse_id', 'guichet_id'],
+    description: 'Fiche d’adhésion PERSONNE PHYSIQUE (Kafo). Envoyer en JSON au POST. Pas de classification risque. À la soumission, identité + pièce + origine des fonds sont obligatoires.',
+    properties: [
+        new OA\Property(property: 'caisse_id', type: 'integer', example: 1, description: 'Caisse de… (GET /api/caisses)'),
+        new OA\Property(property: 'guichet_id', type: 'integer', example: 1, description: 'Guichet de… (doit appartenir à la caisse et avoir ≥ 1 case)'),
+        new OA\Property(property: 'first_name', type: 'string', example: 'Awa', description: '1. Identité — Prénoms'),
+        new OA\Property(property: 'last_name', type: 'string', example: 'Traoré', description: '1. Identité — Nom'),
+        new OA\Property(property: 'date_of_birth', type: 'string', format: 'date', example: '1990-05-12', description: 'Date de naissance'),
+        new OA\Property(property: 'birth_place', type: 'string', example: 'Bamako', description: 'Lieu de naissance'),
+        new OA\Property(property: 'nationality', type: 'string', example: 'Malienne', description: 'Nationalité'),
+        new OA\Property(property: 'country_of_origin', type: 'string', nullable: true, example: 'Mali', description: 'Pays d’origine'),
+        new OA\Property(property: 'gender', ref: '#/components/schemas/Gender', description: 'Sexe'),
+        new OA\Property(property: 'father_name', type: 'string', nullable: true, example: 'Ibrahim Traoré', description: 'Nom du père'),
+        new OA\Property(property: 'mother_name', type: 'string', nullable: true, example: 'Fatoumata Diallo', description: 'Nom de la mère'),
+        new OA\Property(property: 'marital_status', ref: '#/components/schemas/MaritalStatus', description: 'Situation matrimoniale'),
+        new OA\Property(property: 'profession', type: 'string', nullable: true, example: 'Commerçante', description: 'Profession'),
+        new OA\Property(property: 'activity_sector', type: 'string', nullable: true, example: 'Commerce de détail', description: 'Secteur d’activité'),
+        new OA\Property(property: 'city', type: 'string', example: 'Bamako', description: '2. Coordonnées — Ville/village'),
+        new OA\Property(property: 'residential_zone', type: 'string', nullable: true, example: 'ACI 2000', description: 'Quartier'),
+        new OA\Property(property: 'address', type: 'string', example: 'Rue 312, porte 45', description: 'Adresse complète'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, example: 'awa@example.com'),
+        new OA\Property(property: 'phone', type: 'string', example: '70123456', description: 'Téléphone'),
+        new OA\Property(property: 'id_document_type', type: 'string', example: 'CNI', description: '3. Pièce — Type (CNI, PASSEPORT…)'),
+        new OA\Property(property: 'id_document_number', type: 'string', example: 'CNI123456', description: 'N° pièce'),
+        new OA\Property(property: 'id_issued_at', type: 'string', format: 'date', nullable: true, example: '2020-01-15', description: 'Délivrée le'),
+        new OA\Property(property: 'id_expires_at', type: 'string', format: 'date', nullable: true, example: '2030-01-15', description: 'Expire le'),
+        new OA\Property(property: 'id_issued_place', type: 'string', nullable: true, example: 'Bamako', description: 'Lieu de délivrance'),
+        new OA\Property(property: 'economic_status', type: 'string', nullable: true, example: 'Commerçant', description: '4. Statut (Salarié, Commerçant, Profession libérale, Sans emploi…)'),
+        new OA\Property(property: 'employer_name', type: 'string', nullable: true, example: 'SARL Demo', description: 'Nom de l’employeur'),
+        new OA\Property(property: 'employer_address', type: 'string', nullable: true, example: 'Hamdallaye', description: 'Adresse de l’employeur'),
+        new OA\Property(property: 'estimated_monthly_income', type: 'number', format: 'float', nullable: true, example: 250000, description: 'Revenus mensuels estimés (FCFA)'),
+        new OA\Property(property: 'funds_origin', type: 'string', example: 'Commerce', description: 'Origine des fonds'),
+        new OA\Property(property: 'account_main_usage', type: 'string', example: 'Épargne et paiements', description: 'Usage principal du compte'),
+        new OA\Property(property: 'has_certified_id_copy', type: 'boolean', example: true, description: '6. Copie certifiée pièce d’identité'),
+        new OA\Property(property: 'has_domicile_proof', type: 'boolean', example: true, description: 'Justificatif de domicile'),
+        new OA\Property(property: 'has_income_proof', type: 'boolean', example: false, description: 'Justificatif de revenus'),
+        new OA\Property(property: 'adhesion_date', type: 'string', format: 'date', nullable: true, example: '2026-09-22'),
+        new OA\Property(property: 'adhesion_place', type: 'string', nullable: true, example: 'Bamako'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'StoreLegalEntityBankAccountApplicationRequest',
+    required: ['caisse_id', 'guichet_id'],
+    description: 'Fiche d’adhésion PERSONNE MORALE. Envoyer en JSON. Dirigeants = parties role SIGNATORY (max 3). UBO = BENEFICIAL_OWNER. Pas de classification risque.',
+    properties: [
+        new OA\Property(property: 'caisse_id', type: 'integer', example: 1, description: 'Caisse de…'),
+        new OA\Property(property: 'guichet_id', type: 'integer', example: 1, description: 'Guichet de…'),
+        new OA\Property(property: 'company_name', type: 'string', example: 'SARL Agro Négoce Mali', description: '1. Raison sociale'),
+        new OA\Property(property: 'legal_form', ref: '#/components/schemas/LegalForm', description: 'Forme juridique (SA, SARL, GIE…)'),
+        new OA\Property(property: 'tax_id', type: 'string', example: 'NIF-2024-001', description: 'N° identification fiscale (NIF)'),
+        new OA\Property(property: 'rccm_number', type: 'string', example: 'MA.BKO.2024.B.12345', description: 'N° RCCM / Agrément'),
+        new OA\Property(property: 'receipt_number', type: 'string', nullable: true, example: 'REC-ASSOC-01', description: 'N° Récépissé (si association)'),
+        new OA\Property(property: 'inps_number', type: 'string', nullable: true, example: 'INPS-001', description: 'N° INPS'),
+        new OA\Property(property: 'head_office_address', type: 'string', example: 'Avenue de l’Indépendance, Bamako', description: 'Adresse du siège'),
+        new OA\Property(property: 'company_email', type: 'string', format: 'email', nullable: true, example: 'contact@agromali.ml'),
+        new OA\Property(property: 'company_phone', type: 'string', nullable: true, example: '20223344', description: 'Tél société'),
+        new OA\Property(property: 'main_activity', type: 'string', example: 'Négoce de céréales', description: 'Activité principale'),
+        new OA\Property(property: 'annual_turnover', type: 'number', format: 'float', nullable: true, example: 45000000, description: 'Chiffre d’affaires annuel (FCFA)'),
+        new OA\Property(
+            property: 'parties',
+            type: 'array',
+            description: '2. Dirigeants (SIGNATORY, max 3) + 3. Bénéficiaires effectifs (BENEFICIAL_OWNER)',
+            items: new OA\Items(ref: '#/components/schemas/BankAccountApplicationPartyInput')
+        ),
+        new OA\Property(property: 'has_ubo_over_25', type: 'boolean', nullable: true, example: true, description: 'Personne physique détenant + de 25 % du capital ?'),
+        new OA\Property(property: 'indirect_control_description', type: 'string', nullable: true, description: 'Si contrôle indirect, décrire comment'),
+        new OA\Property(property: 'initial_contribution_origin', type: 'string', example: 'Apport des associés', description: '4. Origine de l’apport initial'),
+        new OA\Property(property: 'planned_operations_nature', type: 'string', example: 'Encaissements clients et paiements fournisseurs', description: 'Nature des opérations prévues'),
+        new OA\Property(property: 'has_nif_copy', type: 'boolean', example: true, description: '6. Copie NIF'),
+        new OA\Property(property: 'has_rccm_copy', type: 'boolean', example: true, description: 'Copie RCCM / Agrément / Récépissé'),
+        new OA\Property(property: 'has_approval_or_receipt_copy', type: 'boolean', example: false),
+        new OA\Property(property: 'has_statutes_copy', type: 'boolean', example: true, description: 'Copie statuts'),
+        new OA\Property(property: 'has_mandate_copy', type: 'boolean', example: true, description: 'Copie mandat / Procuration'),
+        new OA\Property(property: 'has_directors_id_copies', type: 'boolean', example: true, description: 'Copie CNI des dirigeants'),
+        new OA\Property(property: 'has_ubo_id_copies', type: 'boolean', example: true, description: 'Copie CNI des bénéficiaires effectifs'),
+        new OA\Property(property: 'adhesion_date', type: 'string', format: 'date', nullable: true),
+        new OA\Property(property: 'adhesion_place', type: 'string', nullable: true, example: 'Bamako'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'BankAccountApplicationPartyInput',
+    required: ['role', 'first_name', 'last_name'],
+    properties: [
+        new OA\Property(property: 'role', type: 'string', enum: ['SIGNATORY', 'BENEFICIAL_OWNER'], example: 'SIGNATORY', description: 'SIGNATORY = dirigeant/signataire ; BENEFICIAL_OWNER = bénéficiaire effectif'),
+        new OA\Property(property: 'sort_order', type: 'integer', example: 1, description: 'Signataire 1, 2 ou 3'),
+        new OA\Property(property: 'first_name', type: 'string', example: 'Moussa'),
+        new OA\Property(property: 'last_name', type: 'string', example: 'Diallo'),
+        new OA\Property(property: 'date_of_birth', type: 'string', format: 'date', nullable: true, example: '1985-03-20'),
+        new OA\Property(property: 'birth_place', type: 'string', nullable: true, example: 'Sikasso'),
+        new OA\Property(property: 'nationality', type: 'string', nullable: true, example: 'Malienne'),
+        new OA\Property(property: 'function_in_company', type: 'string', nullable: true, example: 'Gérant', description: 'Fonction dans la société / lien'),
+        new OA\Property(property: 'id_document_type', type: 'string', nullable: true, example: 'CNI'),
+        new OA\Property(property: 'id_document_number', type: 'string', nullable: true, example: 'CNI998877'),
+        new OA\Property(property: 'address', type: 'string', nullable: true),
+        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '76112233'),
+        new OA\Property(property: 'link_with_company', type: 'string', nullable: true, description: 'Lien avec la société (surtout UBO)'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'StoreBankAccountApplicationDocumentRequest',
+    required: ['document_type', 'file'],
+    properties: [
+        new OA\Property(
+            property: 'document_type',
+            type: 'string',
+            description: 'PP : CERTIFIED_ID_COPY, DOMICILE_PROOF, INCOME_PROOF, CLIENT_SIGNATURE, OTHER. PM : NIF_COPY, RCCM_COPY, APPROVAL_OR_RECEIPT_COPY, STATUTES_COPY, MANDATE_COPY, DIRECTORS_ID_COPIES, UBO_ID_COPIES, CLIENT_SIGNATURE, OTHER.',
+            example: 'CERTIFIED_ID_COPY'
+        ),
+        new OA\Property(property: 'file', type: 'string', format: 'binary', description: 'PDF, JPG ou PNG (max 10 Mo)'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ReturnBankAccountApplicationRequest',
+    required: ['comment'],
+    properties: [
+        new OA\Property(property: 'comment', type: 'string', minLength: 5, example: 'Joindre la copie certifiée de la CNI et le justificatif de domicile.'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ApproveBankAccountApplicationRequest',
+    properties: [
+        new OA\Property(property: 'cash_desk_id', type: 'integer', nullable: true, description: 'Case optionnelle ; sinon 1ère case active du guichet'),
+        new OA\Property(property: 'account_type', type: 'string', nullable: true, example: 'SAVINGS'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'StoreCaisseRequest',
+    required: ['code', 'name'],
+    description: 'Création d’une caisse (unité institutionnelle).',
+    properties: [
+        new OA\Property(property: 'code', type: 'string', maxLength: 20, example: 'KAY', description: 'Code unique (utilisé dans le N° de compte)'),
+        new OA\Property(property: 'name', type: 'string', maxLength: 150, example: 'Caisse de Kayes', description: 'Libellé affiché'),
+        new OA\Property(property: 'city', type: 'string', maxLength: 100, nullable: true, example: 'Kayes'),
+        new OA\Property(property: 'is_active', type: 'boolean', nullable: true, example: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'UpdateCaisseRequest',
+    description: 'Modification partielle d’une caisse.',
+    properties: [
+        new OA\Property(property: 'code', type: 'string', maxLength: 20, example: 'KAY'),
+        new OA\Property(property: 'name', type: 'string', maxLength: 150, example: 'Caisse de Kayes'),
+        new OA\Property(property: 'city', type: 'string', maxLength: 100, nullable: true, example: 'Kayes'),
+        new OA\Property(property: 'is_active', type: 'boolean', nullable: true, example: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'StoreGuichetRequest',
+    required: ['caisse_id', 'code', 'name'],
+    description: 'Création d’un guichet rattaché à une caisse. Prévoir ensuite ≥ 1 case.',
+    properties: [
+        new OA\Property(property: 'caisse_id', type: 'integer', example: 1, description: 'ID caisse parente'),
+        new OA\Property(property: 'code', type: 'string', maxLength: 20, example: 'G01', description: 'Unique par caisse'),
+        new OA\Property(property: 'name', type: 'string', maxLength: 150, example: 'Guichet Centre'),
+        new OA\Property(property: 'is_active', type: 'boolean', nullable: true, example: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'UpdateGuichetRequest',
+    description: 'Modification d’un guichet. Activation refusée s’il n’y a aucune case active.',
+    properties: [
+        new OA\Property(property: 'code', type: 'string', maxLength: 20, example: 'G01'),
+        new OA\Property(property: 'name', type: 'string', maxLength: 150, example: 'Guichet ACI 2000'),
+        new OA\Property(property: 'is_active', type: 'boolean', nullable: true, example: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'StoreCashDeskRequest',
+    required: ['guichet_id', 'code', 'label'],
+    description: 'Création d’une case (till) derrière un guichet.',
+    properties: [
+        new OA\Property(property: 'guichet_id', type: 'integer', example: 1, description: 'ID guichet parent'),
+        new OA\Property(property: 'code', type: 'string', maxLength: 20, example: 'C01', description: 'Unique par guichet'),
+        new OA\Property(property: 'label', type: 'string', maxLength: 150, example: 'Case 1'),
+        new OA\Property(property: 'is_active', type: 'boolean', nullable: true, example: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'UpdateCashDeskRequest',
+    description: 'Modification d’une case. Impossible de désactiver la dernière case active d’un guichet actif.',
+    properties: [
+        new OA\Property(property: 'code', type: 'string', maxLength: 20, example: 'C01'),
+        new OA\Property(property: 'label', type: 'string', maxLength: 150, example: 'Case 1'),
+        new OA\Property(property: 'is_active', type: 'boolean', nullable: true, example: true),
+    ]
+)]
 class Schemas {}

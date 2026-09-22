@@ -4,8 +4,17 @@ return [
     /*
     | Prototype institution rates. These are not official CIF/IMF tariffs
     | until the partner validates them.
+    |
+    | Single annual interest rate for every dossier (simulation, scoring
+    | proposal, committee approval, loan). Clients cannot override it.
     */
-    'annual_interest_rate_percent' => (float) env('CREDIT_ANNUAL_INTEREST_RATE', 12.0),
+    'interest' => [
+        'annual_percent' => (float) env('CREDIT_ANNUAL_INTEREST_RATE', 15.0),
+    ],
+
+    /** @deprecated Use credit.interest.annual_percent */
+    'annual_interest_rate_percent' => (float) env('CREDIT_ANNUAL_INTEREST_RATE', 15.0),
+
     'repayment_margin_percentage' => (float) env('CREDIT_REPAYMENT_MARGIN', 20.0),
 
     /*

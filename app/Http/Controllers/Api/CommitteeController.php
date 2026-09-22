@@ -10,6 +10,7 @@ use App\Http\Resources\CreditRequestResource;
 use App\Models\CreditCommitteeDecision;
 use App\Models\CreditRequest;
 use App\Services\CreditWorkflowService;
+use App\Services\InterestRateService;
 use App\Services\LoanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ class CommitteeController extends Controller
 {
     public function __construct(
         protected CreditWorkflowService $workflowService,
-        protected LoanService $loanService
+        protected LoanService $loanService,
+        protected InterestRateService $interestRates,
     ) {}
 
     #[OA\Get(
@@ -69,7 +71,7 @@ class CommitteeController extends Controller
         operationId: 'committeeDecide',
         tags: ['Comité'],
         summary: 'Décider de l’octroi',
-        description: '**Rôles :** Membre du comité (`committee_member`), Admin (`admin`). **Valeurs :** `decision` = `APPROVED` | `REJECTED` | `AMENDED`. `APPROVED` / `AMENDED` créent le prêt (sans décaissement).',
+        description: '**Rôles :** Membre du comité (`committee_member`), Admin (`admin`). **Valeurs :** `decision` = `APPROVED` | `REJECTED` | `AMENDED`. `APPROVED` / `AMENDED` créent le prêt (sans décaissement). Le taux d’intérêt institutionnel (15 %) est appliqué automatiquement.',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(ref: '#/components/parameters/CreditRequestId')],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/CommitteeDecisionRequest')),
@@ -95,6 +97,7 @@ class CommitteeController extends Controller
                 'decision' => $decisionType,
                 'approved_amount' => $validated['approved_amount'] ?? $lockedRequest->requested_amount,
                 'approved_duration_months' => $validated['approved_duration_months'] ?? $lockedRequest->duration_months,
+                'annual_interest_rate_percent' => $this->interestRates->institutionalRate(),
                 'comment' => $validated['comment'],
                 'decided_at' => now(),
             ]);
@@ -107,6 +110,7 @@ class CommitteeController extends Controller
                     "Décision Comité : {$decisionType->value}"
                 );
 
+                $lockedRequest->loadMissing('latestAnalysis');
                 $this->loanService->createApprovedLoan($lockedRequest, $validated);
             } else {
                 $this->workflowService->transitionStatus(

@@ -35,6 +35,8 @@ class CreditScoringEngineTest extends TestCase
             (float) $analysis->overall_score
         );
         $this->assertNotEquals(100.0, (float) $analysis->overall_score);
+        $this->assertNotNull($analysis->proposed_annual_interest_rate);
+        $this->assertSame(15.0, (float) $analysis->proposed_annual_interest_rate);
         $this->assertEquals(ScoringMode::Standard, $analysis->scoringModel->scoring_mode);
         $this->assertCount(9, $analysis->factors);
         $this->assertTrue($analysis->factors->contains(

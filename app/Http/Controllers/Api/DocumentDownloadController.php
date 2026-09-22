@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankAccountApplicationDocument;
 use App\Models\Document;
 use App\Models\Guarantee;
 use App\Models\KycDocument;
@@ -109,6 +110,24 @@ class DocumentDownloadController extends Controller
         return Storage::download(
             $guarantee->file_path,
             $guarantee->original_filename ?: basename($guarantee->file_path)
+        );
+    }
+
+    public function bankAccountApplicationDocument(
+        BankAccountApplicationDocument $bankAccountApplicationDocument
+    ): StreamedResponse {
+        $bankAccountApplicationDocument->loadMissing('application');
+        $this->authorize('view', $bankAccountApplicationDocument->application);
+
+        abort_unless(
+            Storage::exists($bankAccountApplicationDocument->file_path),
+            404,
+            'Ce fichier n’est pas disponible pour le moment.'
+        );
+
+        return Storage::download(
+            $bankAccountApplicationDocument->file_path,
+            $bankAccountApplicationDocument->original_filename
         );
     }
 }

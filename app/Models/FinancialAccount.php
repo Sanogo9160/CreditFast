@@ -13,6 +13,10 @@ class FinancialAccount extends Model
 
     protected $fillable = [
         'client_id',
+        'caisse_id',
+        'guichet_id',
+        'cash_desk_id',
+        'bank_account_application_id',
         'account_number',
         'account_type',
         'balance',
@@ -31,6 +35,26 @@ class FinancialAccount extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function caisse(): BelongsTo
+    {
+        return $this->belongsTo(Caisse::class);
+    }
+
+    public function guichet(): BelongsTo
+    {
+        return $this->belongsTo(Guichet::class);
+    }
+
+    public function cashDesk(): BelongsTo
+    {
+        return $this->belongsTo(CashDesk::class);
+    }
+
+    public function bankAccountApplication(): BelongsTo
+    {
+        return $this->belongsTo(BankAccountApplication::class);
     }
 
     public function transactions(): HasMany

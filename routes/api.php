@@ -1,16 +1,22 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\CaisseAdminController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AgentBankAccountApplicationController;
 use App\Http\Controllers\Api\AnalystController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CaisseController;
 use App\Http\Controllers\Api\ClientProfileController;
 use App\Http\Controllers\Api\CommitteeController;
 use App\Http\Controllers\Api\CreditAgentController;
 use App\Http\Controllers\Api\CreditProductController;
 use App\Http\Controllers\Api\CreditRequestController;
+use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\FieldVisitController;
+use App\Http\Controllers\Api\LegalEntityBankAccountApplicationController;
 use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PhysicalPersonBankAccountApplicationController;
 use App\Http\Controllers\Api\ProfilePhotoController;
 use App\Http\Controllers\Api\ScoringController;
 use App\Http\Controllers\Api\SimulationController;
@@ -39,6 +45,31 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/kyc-documents/{kycDocument}/file', [DocumentDownloadController::class, 'kycDocument']);
     Route::get('/guarantees/{guarantee}/file', [DocumentDownloadController::class, 'guaranteeFile'])
         ->name('guarantees.file');
+    Route::get('/bank-account-applications/documents/{bankAccountApplicationDocument}/file', [DocumentDownloadController::class, 'bankAccountApplicationDocument']);
+
+    Route::get('/caisses', [CaisseController::class, 'index']);
+    Route::get('/caisses/{caisse}/guichets', [CaisseController::class, 'guichets']);
+
+    Route::middleware('role:client')->prefix('bank-account-applications')->group(function () {
+        Route::prefix('physical-person')->group(function () {
+            Route::get('/', [PhysicalPersonBankAccountApplicationController::class, 'index']);
+            Route::post('/', [PhysicalPersonBankAccountApplicationController::class, 'store']);
+            Route::get('/{bankAccountApplication}', [PhysicalPersonBankAccountApplicationController::class, 'show']);
+            Route::put('/{bankAccountApplication}', [PhysicalPersonBankAccountApplicationController::class, 'update']);
+            Route::post('/{bankAccountApplication}/submit', [PhysicalPersonBankAccountApplicationController::class, 'submit']);
+            Route::post('/{bankAccountApplication}/documents', [PhysicalPersonBankAccountApplicationController::class, 'storeDocument']);
+        });
+
+        Route::prefix('legal-entity')->group(function () {
+            Route::get('/', [LegalEntityBankAccountApplicationController::class, 'index']);
+            Route::post('/', [LegalEntityBankAccountApplicationController::class, 'store']);
+            Route::get('/{bankAccountApplication}', [LegalEntityBankAccountApplicationController::class, 'show']);
+            Route::put('/{bankAccountApplication}', [LegalEntityBankAccountApplicationController::class, 'update']);
+            Route::post('/{bankAccountApplication}/submit', [LegalEntityBankAccountApplicationController::class, 'submit']);
+            Route::post('/{bankAccountApplication}/documents', [LegalEntityBankAccountApplicationController::class, 'storeDocument']);
+        });
+    });
+
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/{notification}', [NotificationController::class, 'show']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
@@ -123,6 +154,17 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/financial-accounts/{financialAccount}/transactions', [CreditAgentController::class, 'storeAccountTransaction']);
         Route::post('/clients/{client}/savings-history', [CreditAgentController::class, 'storeSavingsHistory']);
 
+        Route::get('/bank-account-applications/physical-person', [AgentBankAccountApplicationController::class, 'indexPhysical']);
+        Route::get('/bank-account-applications/legal-entity', [AgentBankAccountApplicationController::class, 'indexLegal']);
+        Route::get('/bank-account-applications/physical-person/{bankAccountApplication}', [AgentBankAccountApplicationController::class, 'showPhysical']);
+        Route::get('/bank-account-applications/legal-entity/{bankAccountApplication}', [AgentBankAccountApplicationController::class, 'showLegal']);
+        Route::post('/bank-account-applications/physical-person/{bankAccountApplication}/return', [AgentBankAccountApplicationController::class, 'returnPhysical']);
+        Route::post('/bank-account-applications/legal-entity/{bankAccountApplication}/return', [AgentBankAccountApplicationController::class, 'returnLegal']);
+        Route::post('/bank-account-applications/physical-person/{bankAccountApplication}/reject', [AgentBankAccountApplicationController::class, 'rejectPhysical']);
+        Route::post('/bank-account-applications/legal-entity/{bankAccountApplication}/reject', [AgentBankAccountApplicationController::class, 'rejectLegal']);
+        Route::post('/bank-account-applications/physical-person/{bankAccountApplication}/approve', [AgentBankAccountApplicationController::class, 'approvePhysical']);
+        Route::post('/bank-account-applications/legal-entity/{bankAccountApplication}/approve', [AgentBankAccountApplicationController::class, 'approveLegal']);
+
         Route::get('/field-visits', [FieldVisitController::class, 'index']);
         Route::get('/requests/{creditRequest}/field-visits', [FieldVisitController::class, 'indexForRequest']);
         Route::post('/requests/{creditRequest}/field-visits', [FieldVisitController::class, 'store']);
@@ -161,5 +203,21 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/scoring-models/{scoringModel}/status', [AdminController::class, 'updateScoringModelStatus']);
         Route::post('/scoring-models/{scoringModel}/rules', [AdminController::class, 'storeScoringRule']);
         Route::get('/audit-logs', [AdminController::class, 'auditLogs']);
+
+        Route::get('/caisses', [CaisseAdminController::class, 'index']);
+        Route::post('/caisses', [CaisseAdminController::class, 'storeCaisse']);
+        Route::get('/caisses/{caisse}', [CaisseAdminController::class, 'showCaisse']);
+        Route::put('/caisses/{caisse}', [CaisseAdminController::class, 'updateCaisse']);
+        Route::delete('/caisses/{caisse}', [CaisseAdminController::class, 'destroyCaisse']);
+
+        Route::post('/guichets', [CaisseAdminController::class, 'storeGuichet']);
+        Route::get('/guichets/{guichet}', [CaisseAdminController::class, 'showGuichet']);
+        Route::put('/guichets/{guichet}', [CaisseAdminController::class, 'updateGuichet']);
+        Route::delete('/guichets/{guichet}', [CaisseAdminController::class, 'destroyGuichet']);
+
+        Route::post('/cash-desks', [CaisseAdminController::class, 'storeCashDesk']);
+        Route::get('/cash-desks/{cashDesk}', [CaisseAdminController::class, 'showCashDesk']);
+        Route::put('/cash-desks/{cashDesk}', [CaisseAdminController::class, 'updateCashDesk']);
+        Route::delete('/cash-desks/{cashDesk}', [CaisseAdminController::class, 'destroyCashDesk']);
     });
 });
