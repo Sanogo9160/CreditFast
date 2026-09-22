@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\CommitteeController;
 use App\Http\Controllers\Api\CreditAgentController;
 use App\Http\Controllers\Api\CreditProductController;
 use App\Http\Controllers\Api\CreditRequestController;
-use App\Http\Controllers\Api\DocumentDownloadController;
+use App\Http\Controllers\Api\FieldVisitController;
 use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfilePhotoController;
@@ -122,6 +122,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/clients/{client}/financial-accounts', [CreditAgentController::class, 'storeFinancialAccount']);
         Route::post('/financial-accounts/{financialAccount}/transactions', [CreditAgentController::class, 'storeAccountTransaction']);
         Route::post('/clients/{client}/savings-history', [CreditAgentController::class, 'storeSavingsHistory']);
+
+        Route::get('/field-visits', [FieldVisitController::class, 'index']);
+        Route::get('/requests/{creditRequest}/field-visits', [FieldVisitController::class, 'indexForRequest']);
+        Route::post('/requests/{creditRequest}/field-visits', [FieldVisitController::class, 'store']);
+        Route::get('/field-visits/{fieldVisit}', [FieldVisitController::class, 'show']);
+        Route::put('/field-visits/{fieldVisit}', [FieldVisitController::class, 'update']);
+        Route::post('/field-visits/{fieldVisit}/start', [FieldVisitController::class, 'start']);
+        Route::post('/field-visits/{fieldVisit}/complete', [FieldVisitController::class, 'complete']);
+        Route::post('/field-visits/{fieldVisit}/cancel', [FieldVisitController::class, 'cancel']);
     });
 
     Route::middleware('role:analyst,admin')->prefix('analyst')->group(function () {

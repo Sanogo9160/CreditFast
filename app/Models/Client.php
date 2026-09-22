@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ClientType;
 use App\Enums\KycStatus;
+use App\Enums\LegalForm;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,10 +36,33 @@ class Client extends Model
     {
         return [
             'client_type' => ClientType::class,
+            'legal_form' => LegalForm::class,
             'date_of_birth' => 'date',
             'kyc_status' => KycStatus::class,
             'institution_verified_at' => 'datetime',
         ];
+    }
+
+    public function isLegalEntity(): bool
+    {
+        return $this->client_type === ClientType::LegalEntity;
+    }
+
+    public function isPhysicalPerson(): bool
+    {
+        return $this->client_type === ClientType::PhysicalPerson;
+    }
+
+    /**
+     * Libellé d’affichage : raison sociale (PM) ou nom du titulaire (PP).
+     */
+    public function displayName(): string
+    {
+        if ($this->isLegalEntity()) {
+            return (string) ($this->trade_name ?: $this->company_name ?: 'Entreprise');
+        }
+
+        return trim(($this->user?->first_name ?? '').' '.($this->user?->last_name ?? '')) ?: 'Client';
     }
 
     public function user(): BelongsTo

@@ -97,6 +97,11 @@ class CreditRequest extends Model
         return $this->hasMany(CreditReview::class);
     }
 
+    public function fieldVisits(): HasMany
+    {
+        return $this->hasMany(FieldVisit::class);
+    }
+
     public function committeeDecisions(): HasMany
     {
         return $this->hasMany(CreditCommitteeDecision::class);

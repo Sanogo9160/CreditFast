@@ -76,6 +76,48 @@ class ClientRegistrationTypeApiTest extends TestCase
             ->assertJsonValidationErrors(['client_type']);
     }
 
+    public function test_returns_422_when_legal_entity_misses_legal_form(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'client_type' => ClientType::LegalEntity->value,
+            'first_name' => 'Fatou',
+            'last_name' => 'Traore',
+            'phone' => '+22376000107',
+            'password' => 'MotDePasseFort8',
+            'company_name' => 'SARL Sans Forme',
+            'registration_number' => 'MA.BKO.2024.B.22222',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['legal_form']);
+    }
+
+    public function test_returns_422_when_registration_number_is_duplicated(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'client_type' => ClientType::LegalEntity->value,
+            'first_name' => 'Fatou',
+            'last_name' => 'Traore',
+            'phone' => '+22376000108',
+            'password' => 'MotDePasseFort8',
+            'company_name' => 'SARL Première',
+            'registration_number' => 'MA.BKO.DUP.0001',
+            'legal_form' => 'SARL',
+        ])->assertCreated();
+
+        $this->postJson('/api/auth/register', [
+            'client_type' => ClientType::LegalEntity->value,
+            'first_name' => 'Awa',
+            'last_name' => 'Diarra',
+            'phone' => '+22376000109',
+            'password' => 'MotDePasseFort8',
+            'company_name' => 'SARL Seconde',
+            'registration_number' => 'MA.BKO.DUP.0001',
+            'legal_form' => 'SA',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['registration_number']);
+    }
+
     public function test_returns_422_when_legal_entity_misses_company_name(): void
     {
         $this->postJson('/api/auth/register', [
@@ -85,6 +127,7 @@ class ClientRegistrationTypeApiTest extends TestCase
             'phone' => '+22376000104',
             'password' => 'MotDePasseFort8',
             'registration_number' => 'MA.BKO.2024.B.11111',
+            'legal_form' => 'SARL',
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['company_name']);

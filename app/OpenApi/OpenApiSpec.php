@@ -46,12 +46,21 @@ MD
 #[OA\Tag(name: 'Documents', description: 'Téléchargement des fichiers (pièces de dossier et KYC).')]
 #[OA\Tag(name: 'Scoring et analyse', description: 'Moteur d’aide à la décision. Calcul : Chargé, Analyste, Admin. Lecture : propriétaire ou staff.')]
 #[OA\Tag(name: 'Chargé de crédit', description: 'File agent, fiches clients (lister/lire), compléments, vérifications, historique institutionnel. Rôles : Chargé, Admin.')]
+#[OA\Tag(name: 'Visites terrain', description: 'Planification, démarrage et rapport d’inspection / rendez-vous sur le terrain. Rôles : Chargé, Admin.')]
 #[OA\Tag(name: 'Analyste', description: 'Revue, validation humaine, anomalies. Rôles : Analyste, Admin.')]
 #[OA\Tag(name: 'Comité', description: 'Décision d’octroi. Rôles : Membre du comité, Admin.')]
 #[OA\Tag(name: 'Prêts', description: 'Consultation (Client + staff). Décaissement et remboursement : Chargé et Admin uniquement.')]
 #[OA\Tag(name: 'Notifications', description: 'CRUD des notifications de l’utilisateur connecté (lister, lire, marquer lue, supprimer).')]
 #[OA\Tag(name: 'Administration', description: 'CRUD comptes (désactivation, réinitialisation du mot de passe), modèles de scoring, audit. Rôle : Admin.')]
 #[OA\Tag(name: 'Simulation', description: 'Comparaison de mensualités. Utilisateur authentifié.')]
+#[OA\Parameter(
+    parameter: 'FieldVisitId',
+    name: 'fieldVisit',
+    description: 'Identifiant de la visite terrain',
+    in: 'path',
+    required: true,
+    schema: new OA\Schema(type: 'integer', example: 1)
+)]
 #[OA\Parameter(
     parameter: 'CreditRequestId',
     name: 'creditRequest',

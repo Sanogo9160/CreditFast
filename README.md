@@ -84,8 +84,10 @@ Header : `Authorization: Bearer {token}` + `Accept: application/json`.
 
 Enum `ClientType` :
 
-- `PHYSICAL_PERSON` — particulier / commerçant individuel  
-- `LEGAL_ENTITY` — entreprise (raison sociale, numéro d’immatriculation, forme juridique)
+| Type | Qui | Champs spécifiques |
+|---|---|---|
+| `PHYSICAL_PERSON` | Particulier / commerçant individuel | `first_name` / `last_name` = le client ; `occupation` possible au profil |
+| `LEGAL_ENTITY` | Entreprise | `company_name` (raison sociale), `registration_number` (RCCM ou NIF, **unique**), `legal_form` (enum) obligatoires ; `trade_name` facultatif ; `first_name` / `last_name` = **représentant légal** |
 
 Champs / sigles utiles pour une personne morale :
 
@@ -126,7 +128,7 @@ Client inscrit
   → POST /api/credit-requests (+ documents, garanties)
   → POST .../submit
        ↓
-  Agent (/api/agent/…) : compléments, vérif KYC/garanties, envoi à l’analyse
+  Agent (/api/agent/…) : compléments, vérif KYC/garanties, **visites terrain**, envoi à l’analyse
        ↓
   Analyste (/api/analyst/…) : scoring, anomalies, review, validation humaine
        ↓
@@ -134,6 +136,8 @@ Client inscrit
        ↓
   Prêt (/api/loans/…) : décaissement & remboursements
 ```
+
+**Visites terrain** (`/api/agent/field-visits`) : le chargé planifie un rendez-vous (`SCHEDULED`), démarre sur place (`IN_PROGRESS`), puis clôture avec un rapport (`COMPLETED` + `FAVORABLE`/`RESERVED`/`UNFAVORABLE`). Annulation ou absence client : `CANCELLED` / `NO_SHOW`. La visite aide la décision ; elle ne remplace pas le comité.
 
 Scoring : moteur `CreditScoringEngine` (scorecard + `activity_vitality`). Modèle **STANDARD** uniquement — compte banque/IMF obligatoire. Note globale plafonnée (`CREDIT_SCORE_CEILING`, défaut 95) : marge de prudence, jamais 100 %.  
 Admin : comptes, modèles de scoring, audit (`/api/admin/…`).

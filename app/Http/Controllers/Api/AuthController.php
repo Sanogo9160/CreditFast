@@ -30,7 +30,7 @@ class AuthController extends Controller
         operationId: 'authRegisterClient',
         tags: ['Authentification client'],
         summary: '[Créer] Un compte client',
-        description: '**Public — clients uniquement.** Inscription par **numéro de téléphone unique** et mot de passe. Choisir `client_type` = `PHYSICAL_PERSON` (particulier) ou `LEGAL_ENTITY` (entreprise). Pour une personne morale : `company_name` et `registration_number` obligatoires ; `first_name` / `last_name` désignent le représentant. L’e-mail est facultatif. Le rôle est toujours `client`.',
+        description: '**Public — clients uniquement.** Inscription par **numéro de téléphone unique** et mot de passe. Choisir `client_type` : `PHYSICAL_PERSON` (particulier) ou `LEGAL_ENTITY` (entreprise). **Personne physique :** `first_name` / `last_name` = le client. **Personne morale :** `company_name` (raison sociale), `registration_number` (RCCM ou NIF) et `legal_form` obligatoires ; `trade_name` facultatif ; `first_name` / `last_name` = représentant légal. L’e-mail est facultatif. Le rôle est toujours `client`.',
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(ref: '#/components/schemas/ClientRegisterRequest')

@@ -48,6 +48,7 @@ class CreditProductApiTest extends TestCase
             'password' => 'MotDePasseFort8',
             'company_name' => 'SARL Demo Credit',
             'registration_number' => 'MA.BKO.2026.B.1',
+            'legal_form' => 'SARL',
         ])->assertCreated();
 
         $this->withToken($register->json('token'))

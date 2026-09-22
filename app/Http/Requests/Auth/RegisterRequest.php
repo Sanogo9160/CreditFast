@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use App\Enums\ClientType;
+use App\Enums\LegalForm;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,13 +20,28 @@ class RegisterRequest extends FormRequest
     {
         $email = $this->input('email');
 
-        $this->merge([
+        $merge = [
             'phone' => PhoneNumber::normalize($this->input('phone')),
             'email' => is_string($email) && trim($email) !== '' ? trim($email) : null,
             'client_type' => is_string($this->input('client_type'))
                 ? strtoupper(trim($this->input('client_type')))
                 : $this->input('client_type'),
-        ]);
+        ];
+
+        foreach (['company_name', 'trade_name', 'registration_number', 'legal_form'] as $field) {
+            if (! $this->exists($field)) {
+                continue;
+            }
+
+            $value = $this->input($field);
+            $merge[$field] = is_string($value) && trim($value) !== '' ? trim($value) : null;
+        }
+
+        if (isset($merge['legal_form']) && is_string($merge['legal_form'])) {
+            $merge['legal_form'] = strtoupper($merge['legal_form']);
+        }
+
+        $this->merge($merge);
     }
 
     /**
@@ -61,12 +77,13 @@ class RegisterRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:100',
+                Rule::unique('clients', 'registration_number'),
             ],
             'legal_form' => [
+                Rule::requiredIf($isLegalEntity),
                 Rule::prohibitedIf(! $isLegalEntity),
                 'nullable',
-                'string',
-                'max:100',
+                new Enum(LegalForm::class),
             ],
         ];
     }
@@ -85,7 +102,7 @@ class RegisterRequest extends FormRequest
             'password' => 'mot de passe',
             'company_name' => 'raison sociale',
             'trade_name' => 'nom commercial',
-            'registration_number' => 'numéro d’immatriculation',
+            'registration_number' => 'RCCM / NIF',
             'legal_form' => 'forme juridique',
         ];
     }
@@ -102,7 +119,9 @@ class RegisterRequest extends FormRequest
             'email.unique' => 'Cette adresse e-mail est déjà associée à un compte. Vous pouvez vous connecter ou en indiquer une autre.',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
             'company_name.required' => 'La raison sociale est obligatoire pour une personne morale.',
-            'registration_number.required' => 'Le numéro d’immatriculation (RCCM / NIF) est obligatoire pour une personne morale.',
+            'registration_number.required' => 'Le numéro RCCM ou NIF est obligatoire pour une personne morale.',
+            'registration_number.unique' => 'Ce numéro d’immatriculation est déjà associé à une entreprise.',
+            'legal_form.required' => 'La forme juridique est obligatoire pour une personne morale (ex. SARL, SA, GIE).',
             'company_name.prohibited' => 'La raison sociale ne s’applique qu’aux personnes morales.',
             'trade_name.prohibited' => 'Le nom commercial ne s’applique qu’aux personnes morales.',
             'registration_number.prohibited' => 'Le numéro d’immatriculation ne s’applique qu’aux personnes morales.',

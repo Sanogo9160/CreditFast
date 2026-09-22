@@ -63,15 +63,15 @@ use OpenApi\Attributes as OA;
     required: ['client_type', 'first_name', 'last_name', 'phone', 'password'],
     properties: [
         new OA\Property(property: 'client_type', ref: '#/components/schemas/ClientType'),
-        new OA\Property(property: 'first_name', type: 'string', maxLength: 100, example: 'Mah', description: 'Prénom du particulier ou du représentant légal'),
-        new OA\Property(property: 'last_name', type: 'string', maxLength: 100, example: 'SANOGO', description: 'Nom du particulier ou du représentant légal'),
+        new OA\Property(property: 'first_name', type: 'string', maxLength: 100, example: 'Mah', description: 'Prénom du particulier (PP) ou du représentant légal (PM)'),
+        new OA\Property(property: 'last_name', type: 'string', maxLength: 100, example: 'SANOGO', description: 'Nom du particulier (PP) ou du représentant légal (PM)'),
         new OA\Property(property: 'phone', type: 'string', maxLength: 30, example: '+22377000016'),
         new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, example: 'mahsanogo12@gmail.com'),
         new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'MotDePasseFort8'),
-        new OA\Property(property: 'company_name', type: 'string', maxLength: 200, nullable: true, example: 'SARL Agro Négoce Mali', description: 'Obligatoire si LEGAL_ENTITY'),
-        new OA\Property(property: 'trade_name', type: 'string', maxLength: 200, nullable: true, example: 'AgroNégoce'),
-        new OA\Property(property: 'registration_number', type: 'string', maxLength: 100, nullable: true, example: 'MA.BKO.2024.B.12345', description: 'RCCM / NIF — obligatoire si LEGAL_ENTITY'),
-        new OA\Property(property: 'legal_form', type: 'string', maxLength: 100, nullable: true, example: 'SARL'),
+        new OA\Property(property: 'company_name', type: 'string', maxLength: 200, nullable: true, example: 'SARL Agro Négoce Mali', description: 'Raison sociale — obligatoire si LEGAL_ENTITY ; interdit si PHYSICAL_PERSON'),
+        new OA\Property(property: 'trade_name', type: 'string', maxLength: 200, nullable: true, example: 'AgroNégoce', description: 'Nom commercial (enseigne) — facultatif, PM uniquement'),
+        new OA\Property(property: 'registration_number', type: 'string', maxLength: 100, nullable: true, example: 'MA.BKO.2024.B.12345', description: 'RCCM ou NIF — obligatoire et unique si LEGAL_ENTITY'),
+        new OA\Property(property: 'legal_form', ref: '#/components/schemas/LegalForm', nullable: true, description: 'Obligatoire si LEGAL_ENTITY'),
     ],
     example: [
         'client_type' => 'PHYSICAL_PERSON',
@@ -128,7 +128,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'company_name', type: 'string', nullable: true),
         new OA\Property(property: 'trade_name', type: 'string', nullable: true),
         new OA\Property(property: 'registration_number', type: 'string', nullable: true),
-        new OA\Property(property: 'legal_form', type: 'string', nullable: true),
+        new OA\Property(property: 'legal_form', ref: '#/components/schemas/LegalForm', nullable: true),
         new OA\Property(property: 'kyc_status', ref: '#/components/schemas/KycStatus'),
         new OA\Property(property: 'city', type: 'string', nullable: true),
         new OA\Property(property: 'residential_zone', type: 'string', nullable: true),
@@ -155,7 +155,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'company_name', type: 'string', nullable: true, description: 'Personne morale uniquement'),
         new OA\Property(property: 'trade_name', type: 'string', nullable: true, description: 'Personne morale uniquement'),
         new OA\Property(property: 'registration_number', type: 'string', nullable: true, description: 'Personne morale uniquement'),
-        new OA\Property(property: 'legal_form', type: 'string', nullable: true, description: 'Personne morale uniquement'),
+        new OA\Property(property: 'legal_form', ref: '#/components/schemas/LegalForm', nullable: true, description: 'Personne morale uniquement'),
     ]
 )]
 #[OA\Schema(
@@ -540,6 +540,49 @@ use OpenApi\Attributes as OA;
             maxItems: 8,
             items: new OA\Items(ref: '#/components/schemas/SimulationScenario')
         ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'StoreFieldVisitRequest',
+    required: ['visit_type', 'scheduled_at'],
+    properties: [
+        new OA\Property(property: 'visit_type', ref: '#/components/schemas/FieldVisitType'),
+        new OA\Property(property: 'scheduled_at', type: 'string', format: 'date-time', example: '2026-09-25T09:30:00+00:00'),
+        new OA\Property(property: 'location_label', type: 'string', nullable: true, example: 'Marché Médina, Bamako'),
+        new OA\Property(property: 'latitude', type: 'number', format: 'float', nullable: true, example: 12.6392),
+        new OA\Property(property: 'longitude', type: 'number', format: 'float', nullable: true, example: -8.0029),
+        new OA\Property(property: 'purpose', type: 'string', nullable: true, example: 'Vérifier l’activité et les stocks déclarés'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'UpdateFieldVisitRequest',
+    properties: [
+        new OA\Property(property: 'visit_type', ref: '#/components/schemas/FieldVisitType'),
+        new OA\Property(property: 'scheduled_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'location_label', type: 'string', nullable: true),
+        new OA\Property(property: 'latitude', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'longitude', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'purpose', type: 'string', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'CompleteFieldVisitRequest',
+    required: ['outcome', 'findings'],
+    properties: [
+        new OA\Property(property: 'outcome', ref: '#/components/schemas/FieldVisitOutcome'),
+        new OA\Property(property: 'findings', type: 'string', example: 'Boutique ouverte, stock cohérent avec la demande.'),
+        new OA\Property(property: 'recommendations', type: 'string', nullable: true),
+        new OA\Property(property: 'location_label', type: 'string', nullable: true),
+        new OA\Property(property: 'latitude', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'longitude', type: 'number', format: 'float', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'CancelFieldVisitRequest',
+    required: ['reason'],
+    properties: [
+        new OA\Property(property: 'reason', type: 'string', example: 'Client a reporté le rendez-vous'),
+        new OA\Property(property: 'as_no_show', type: 'boolean', example: false, description: 'true = absence du client (NO_SHOW)'),
     ]
 )]
 #[OA\Schema(

@@ -105,6 +105,25 @@ MD,
     example: 'PHYSICAL_PERSON'
 )]
 #[OA\Schema(
+    schema: 'LegalForm',
+    type: 'string',
+    description: <<<'MD'
+Forme juridique de l’entreprise (personne morale uniquement).
+
+- `SARL` — société à responsabilité limitée
+- `SA` — société anonyme
+- `SAS` — société par actions simplifiée
+- `SAU` — société anonyme unipersonnelle
+- `GIE` — groupement d’intérêt économique
+- `SCOOP` — société cooperative
+- `SCI` — société civile immobilière
+- `EI` — entreprise individuelle
+- `OTHER` — autre
+MD,
+    enum: ['SARL', 'SA', 'SAS', 'SAU', 'GIE', 'SCOOP', 'SCI', 'EI', 'OTHER'],
+    example: 'SARL'
+)]
+#[OA\Schema(
     schema: 'KycStatus',
     type: 'string',
     description: <<<'MD'
@@ -323,6 +342,48 @@ MD,
     example: 'MATERIEL'
 )]
 #[OA\Schema(
+    schema: 'FieldVisitType',
+    type: 'string',
+    description: <<<'MD'
+Objet de la visite terrain du chargé de crédit.
+
+- `ACTIVITY_SITE` — lieu d’activité / boutique / atelier
+- `RESIDENCE` — domicile du client
+- `GUARANTEE_ASSET` — bien proposé en garantie
+- `OTHER` — autre vérification sur place
+MD,
+    enum: ['ACTIVITY_SITE', 'RESIDENCE', 'GUARANTEE_ASSET', 'OTHER'],
+    example: 'ACTIVITY_SITE'
+)]
+#[OA\Schema(
+    schema: 'FieldVisitStatus',
+    type: 'string',
+    description: <<<'MD'
+Cycle de vie d’une visite terrain.
+
+- `SCHEDULED` — rendez-vous planifié
+- `IN_PROGRESS` — chargé sur place
+- `COMPLETED` — rapport renseigné
+- `CANCELLED` — annulée
+- `NO_SHOW` — client absent
+MD,
+    enum: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'],
+    example: 'SCHEDULED'
+)]
+#[OA\Schema(
+    schema: 'FieldVisitOutcome',
+    type: 'string',
+    description: <<<'MD'
+Conclusion du chargé après la visite (aide à la décision, pas octroi).
+
+- `FAVORABLE` — constats cohérents
+- `RESERVED` — réserves / points à clarifier
+- `UNFAVORABLE` — écarts importants ou risque constaté
+MD,
+    enum: ['FAVORABLE', 'RESERVED', 'UNFAVORABLE'],
+    example: 'FAVORABLE'
+)]
+#[OA\Schema(
     schema: 'NotificationType',
     type: 'string',
     description: <<<'MD'
@@ -332,8 +393,9 @@ Type de notification envoyée à l’utilisateur.
 - `COMPLEMENTS_REQUESTED` — dossier renvoyé pour pièces
 - `LOAN_DISBURSED` — fonds décaissés
 - `PASSWORD_RESET` — mot de passe réinitialisé par un admin
+- `FIELD_VISIT` — rendez-vous ou rapport de visite terrain
 MD,
-    enum: ['STATUS_UPDATE', 'COMPLEMENTS_REQUESTED', 'LOAN_DISBURSED', 'PASSWORD_RESET'],
+    enum: ['STATUS_UPDATE', 'COMPLEMENTS_REQUESTED', 'LOAN_DISBURSED', 'PASSWORD_RESET', 'FIELD_VISIT'],
     example: 'STATUS_UPDATE'
 )]
 class EnumSchemas {}
