@@ -40,4 +40,10 @@ return [
         'analyst_email' => env('STAFF_ANALYST_EMAIL', 'analyste@creditfast.ml'),
         'committee_email' => env('STAFF_COMMITTEE_EMAIL', 'comite@creditfast.ml'),
     ],
+
+    /*
+    | Sur un hôte « production » servant aussi de sandbox docs (ex. Render),
+    | autorise le seed idempotent des clients / staff d’atelier Swagger.
+    */
+    'seed_demo_users' => (bool) env('CREDITFAST_SEED_DEMO_USERS', false),
 ];

@@ -86,12 +86,12 @@ use OpenApi\Attributes as OA;
     schema: 'ClientLoginRequest',
     required: ['phone', 'password'],
     properties: [
-        new OA\Property(property: 'phone', type: 'string', example: '+22377000016'),
-        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'MotDePasseFort8'),
+        new OA\Property(property: 'phone', type: 'string', example: '+22370000001', description: 'Atelier : +22370000001 (avec épargne) ou +22370000002 (sans)'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'demo-local'),
     ],
     example: [
-        'phone' => '+22377000016',
-        'password' => 'MotDePasseFort8',
+        'phone' => '+22370000001',
+        'password' => 'demo-local',
     ]
 )]
 #[OA\Schema(

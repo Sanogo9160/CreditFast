@@ -60,3 +60,6 @@ services:
       # false = migrate + seed sans vider la base. Ne remettre à "true" que pour un reset volontaire.
       - key: CREDITFAST_RESET_DATABASE
         value: "false"
+      # Seed clients atelier Swagger (avec/sans épargne) même si APP_ENV=production.
+      - key: CREDITFAST_SEED_DEMO_USERS
+        value: "true"

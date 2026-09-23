@@ -25,11 +25,21 @@ API de microcrédit CreditFast (Laravel Sanctum).
 - Clients : inscription `/api/auth/register` et connexion `/api/auth/client/login` (téléphone + mot de passe).
 - Comptes internes : connexion `/api/auth/staff/login` (e-mail professionnel + mot de passe). Les comptes internes sont créés par un admin.
 
+**Comptes atelier (mot de passe `demo-local`)** — après seed (`TestUsersSeeder`) :
+| Persona | Téléphone | Compte épargne |
+|---|---|---|
+| Amadou Koné (create + submit OK) | `+22370000001` | Oui — `EPARGNE`/`ACTIF` agence `BKO-HAM`, zone `HAM` |
+| Fatoumata Diallo (422 à la création) | `+22370000002` | Non — orienté vers adhésion PP |
+
+Choisir le **Server** qui pointe vers la base où ces comptes ont été seedés (Laragon local, ou Render après deploy avec `CREDITFAST_SEED_DEMO_USERS=true`).
+
 Dans Swagger UI, cliquer **Authorize** et coller le token (sans le préfixe `Bearer`).
 MD
 )]
 #[OA\Server(url: L5_SWAGGER_CONST_HOST, description: 'Hôte actuel (L5_SWAGGER_CONST_HOST)')]
-#[OA\Server(url: 'http://creditfast.test', description: 'Laragon local (HTTP)')]
+#[OA\Server(url: 'http://creditfast.test', description: 'Laragon local (HTTP) — MySQL seedé')]
+#[OA\Server(url: 'https://creditfast-api.onrender.com', description: 'Render docs (PostgreSQL)')]
+#[OA\Server(url: 'https://api.creditfast.ml', description: 'API creditfast.ml')]
 #[OA\SecurityScheme(
     securityScheme: 'sanctum',
     type: 'http',

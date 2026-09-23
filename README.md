@@ -38,11 +38,15 @@ Après seed local (non-prod) : admin + staff + clients démo + **jeu hackathon I
 |---|---|---|---|
 | Admin | `STAFF_ADMIN_EMAIL` | `STAFF_BOOTSTRAP_PASSWORD` | — |
 | Agent | `config('credit.staff.agent_email')` | idem | — |
+| **Amadou Koné** (atelier) | `+22370000001` | `demo-local` | Oui épargne `BKO-HAM` |
+| **Fatoumata Diallo** (atelier) | `+22370000002` | `demo-local` | **Non** → 422 création crédit |
 | Awa Diarra (PP) | `+22370111101` | `password` | Oui `BKO-G01-2025900001` |
 | SARL Textile (PM) | `+22370222201` | `password` | Oui `BKO-G01-2025900010` |
 | GIE Maraîchers (PM) | `+22370333301` | `password` | Oui `SKO-G01-2025900001` |
 | Binta Coulibaly (PP) | `+22370444401` | `password` | **Non** → adhésion |
 | SA Céréales Nord (PM) | `+22370555501` | `password` | **Non** → adhésion |
+
+Sur Render (`APP_ENV=production`), activer `CREDITFAST_SEED_DEMO_USERS=true` (déjà dans `render.yaml`) puis redéployer pour charger ces comptes dans la PostgreSQL docs. En local : `php artisan db:seed --class=TestUsersSeeder`.
 
 Login client : `POST /api/auth/client/login` (téléphone + mot de passe).  
 Login staff : `POST /api/auth/staff/login`.

@@ -18,12 +18,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         if (app()->runningUnitTests()) {
-            $this->call([
-                StaffUserSeeder::class,
-                DemoUserSeeder::class,
-                HackathonInstitutionalClientsSeeder::class,
-                TestUsersSeeder::class,
-            ]);
+            $this->call($this->demoSeeders());
 
             return;
         }
@@ -31,16 +26,30 @@ class DatabaseSeeder extends Seeder
         if (app()->isProduction()) {
             $this->call(AdminUserSeeder::class);
 
+            if (config('credit.seed_demo_users')) {
+                $this->call($this->demoSeeders());
+            }
+
             return;
         }
 
         // Local / hackathon : staff + clients IMF + utilisateurs d’essai atelier.
         $this->call([
             AdminUserSeeder::class,
+            ...$this->demoSeeders(),
+        ]);
+    }
+
+    /**
+     * @return list<class-string<Seeder>>
+     */
+    protected function demoSeeders(): array
+    {
+        return [
             StaffUserSeeder::class,
             DemoUserSeeder::class,
             HackathonInstitutionalClientsSeeder::class,
             TestUsersSeeder::class,
-        ]);
+        ];
     }
 }
