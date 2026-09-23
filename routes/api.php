@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PhysicalPersonBankAccountApplicationController;
 use App\Http\Controllers\Api\ProfilePhotoController;
+use App\Http\Controllers\Api\RoutingController;
 use App\Http\Controllers\Api\ScoringController;
 use App\Http\Controllers\Api\SimulationController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/password', [AuthController::class, 'updatePassword'])->middleware('throttle:passwords');
         Route::put('/password', [AuthController::class, 'updatePassword'])->middleware('throttle:passwords');
     });
 
@@ -78,6 +80,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::middleware('role:client')->prefix('profile')->group(function () {
         Route::get('/', [ClientProfileController::class, 'show']);
         Route::put('/', [ClientProfileController::class, 'updateProfile']);
+        Route::get('/account-check', [ClientProfileController::class, 'accountCheck']);
+        Route::get('/financial-accounts/{financialAccount}/transactions', [ClientProfileController::class, 'accountTransactions']);
+        Route::get('/savings-onboarding', [ClientProfileController::class, 'savingsOnboarding']);
+        Route::post('/savings-pre-applications', [ClientProfileController::class, 'storeSavingsPreApplication']);
 
         Route::get('/activities', [ClientProfileController::class, 'indexActivities']);
         Route::post('/activities', [ClientProfileController::class, 'storeActivity']);
@@ -93,6 +99,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/kyc-documents', [ClientProfileController::class, 'storeKycDocument']);
         Route::get('/kyc-documents/{kycDocument}', [ClientProfileController::class, 'showKycDocument']);
         Route::delete('/kyc-documents/{kycDocument}', [ClientProfileController::class, 'destroyKycDocument']);
+    });
+
+    Route::get('/routing/catalog', [RoutingController::class, 'catalog']);
+    Route::middleware('role:admin')->prefix('routing')->group(function () {
+        Route::get('/requests', [RoutingController::class, 'requests']);
+        Route::post('/requests/{creditRequest}/assign', [RoutingController::class, 'assign']);
+        Route::put('/agents/{agent}', [RoutingController::class, 'updateAgent']);
     });
 
     Route::prefix('credit-requests')->group(function () {
@@ -120,8 +133,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             ->scopeBindings();
 
         Route::post('/{creditRequest}/score', [ScoringController::class, 'evaluate'])
-            ->middleware('role:admin,analyst,credit_agent');
-        Route::get('/{creditRequest}/analysis', [ScoringController::class, 'getAnalysis']);
+            ->middleware('role:admin,committee_member');
+        Route::get('/{creditRequest}/analysis', [ScoringController::class, 'getAnalysis'])
+            ->middleware('role:admin,committee_member');
     });
 
     Route::get('/credit-products', [CreditProductController::class, 'index']);
@@ -164,6 +178,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/bank-account-applications/legal-entity/{bankAccountApplication}/reject', [AgentBankAccountApplicationController::class, 'rejectLegal']);
         Route::post('/bank-account-applications/physical-person/{bankAccountApplication}/approve', [AgentBankAccountApplicationController::class, 'approvePhysical']);
         Route::post('/bank-account-applications/legal-entity/{bankAccountApplication}/approve', [AgentBankAccountApplicationController::class, 'approveLegal']);
+        Route::post('/bank-account-applications/physical-person/{bankAccountApplication}/verify-identity', [AgentBankAccountApplicationController::class, 'verifyIdentityPhysical']);
+        Route::post('/bank-account-applications/legal-entity/{bankAccountApplication}/verify-identity', [AgentBankAccountApplicationController::class, 'verifyIdentityLegal']);
 
         Route::get('/field-visits', [FieldVisitController::class, 'index']);
         Route::get('/requests/{creditRequest}/field-visits', [FieldVisitController::class, 'indexForRequest']);
@@ -196,6 +212,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::get('/users/{user}', [AdminController::class, 'showUser']);
         Route::put('/users/{user}', [AdminController::class, 'updateUser']);
+        Route::post('/users/{user}/password', [AdminController::class, 'resetUserPassword'])->middleware('throttle:passwords');
         Route::put('/users/{user}/password', [AdminController::class, 'resetUserPassword'])->middleware('throttle:passwords');
         Route::delete('/users/{user}', [AdminController::class, 'destroyUser']);
         Route::get('/scoring-models', [AdminController::class, 'scoringModels']);

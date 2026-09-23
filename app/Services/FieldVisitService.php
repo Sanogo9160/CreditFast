@@ -185,8 +185,8 @@ class FieldVisitService
         $allowed = [
             CreditRequestStatus::Submitted,
             CreditRequestStatus::VerificationRequired,
-            CreditRequestStatus::Analysis,
-            CreditRequestStatus::CreditReview,
+            CreditRequestStatus::InAnalysis,
+            CreditRequestStatus::PendingCommittee,
         ];
 
         if (! in_array($creditRequest->status, $allowed, true)) {

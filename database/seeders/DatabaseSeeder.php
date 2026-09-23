@@ -18,16 +18,29 @@ class DatabaseSeeder extends Seeder
         ]);
 
         if (app()->runningUnitTests()) {
-            // Full staff + demo clients for the test suite only.
             $this->call([
                 StaffUserSeeder::class,
                 DemoUserSeeder::class,
+                HackathonInstitutionalClientsSeeder::class,
+                TestUsersSeeder::class,
             ]);
 
             return;
         }
 
-        // Local / production bootstrap: admin account only.
-        $this->call(AdminUserSeeder::class);
+        if (app()->isProduction()) {
+            $this->call(AdminUserSeeder::class);
+
+            return;
+        }
+
+        // Local / hackathon : staff + clients IMF + utilisateurs d’essai atelier.
+        $this->call([
+            AdminUserSeeder::class,
+            StaffUserSeeder::class,
+            DemoUserSeeder::class,
+            HackathonInstitutionalClientsSeeder::class,
+            TestUsersSeeder::class,
+        ]);
     }
 }

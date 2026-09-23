@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('bank_account_application_parties')) {
+            return;
+        }
+
         Schema::create('bank_account_application_parties', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('bank_account_application_id');

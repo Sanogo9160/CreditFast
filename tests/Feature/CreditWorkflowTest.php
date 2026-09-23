@@ -25,12 +25,12 @@ class CreditWorkflowTest extends TestCase
         $creditRequest = CreditRequest::where('client_id', $user->client->id)->firstOrFail();
 
         $workflow = new CreditWorkflowService;
-        $updated = $workflow->transitionStatus($creditRequest, CreditRequestStatus::Analysis, $user, 'Début de l’analyse');
+        $updated = $workflow->transitionStatus($creditRequest, CreditRequestStatus::InAnalysis, $user, 'Début de l’analyse');
 
-        $this->assertEquals(CreditRequestStatus::Analysis, $updated->status);
+        $this->assertEquals(CreditRequestStatus::InAnalysis, $updated->status);
         $this->assertDatabaseHas('credit_status_history', [
             'credit_request_id' => $creditRequest->id,
-            'new_status' => CreditRequestStatus::Analysis->value,
+            'new_status' => CreditRequestStatus::InAnalysis->value,
         ]);
         $this->assertDatabaseHas('notifications', [
             'user_id' => $user->id,

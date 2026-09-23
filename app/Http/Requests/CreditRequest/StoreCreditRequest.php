@@ -6,6 +6,7 @@ use App\Enums\ClientType;
 use App\Enums\CreditProductType;
 use App\Models\Activity;
 use App\Models\CreditRequest;
+use App\Support\InstitutionalAccountRequirement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Validator;
@@ -44,8 +45,6 @@ class StoreCreditRequest extends FormRequest
             'requested_amount' => ['required', 'numeric', 'min:10000'],
             'duration_months' => ['required', 'integer', 'min:1', 'max:60'],
             'purpose' => ['required', 'string', 'max:255'],
-            'declared_monthly_income' => ['required', 'numeric', 'min:0'],
-            'declared_monthly_expenses' => ['required', 'numeric', 'min:0'],
             'activity_id' => ['nullable', 'exists:activities,id'],
             'guarantee' => ['nullable', 'array'],
             'guarantee.guarantee_type' => ['required_with:guarantee', 'string', 'max:80'],
@@ -81,8 +80,10 @@ class StoreCreditRequest extends FormRequest
 
                 if ($client !== null && ! $client->financialAccounts()->exists()) {
                     $validator->errors()->add(
-                        'client',
-                        'Une demande de crédit nécessite un compte en banque ou en institution. Contactez votre chargé de crédit pour l’enregistrer.'
+                        InstitutionalAccountRequirement::ERROR_FIELD,
+                        InstitutionalAccountRequirement::message(
+                            $client->client_type instanceof ClientType ? $client->client_type : null
+                        )
                     );
                 }
 
@@ -127,8 +128,6 @@ class StoreCreditRequest extends FormRequest
             'requested_amount' => 'montant demandé',
             'duration_months' => 'durée',
             'purpose' => 'objet du crédit',
-            'declared_monthly_income' => 'revenu mensuel',
-            'declared_monthly_expenses' => 'charges mensuelles',
             'activity_id' => 'activité',
             'guarantee.guarantee_type' => 'type de garantie',
             'guarantee.declared_value' => 'valeur de la garantie',

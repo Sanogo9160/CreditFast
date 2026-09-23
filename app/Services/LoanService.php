@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
-use App\Enums\CreditRequestStatus;
 use App\Enums\LoanRepaymentStatus;
 use App\Enums\LoanStatus;
+use App\Models\AccountTransaction;
 use App\Models\AuditLog;
 use App\Models\CreditRequest;
+use App\Models\FinancialAccount;
 use App\Models\Loan;
 use App\Models\LoanRepayment;
 use App\Models\Notification;
@@ -14,6 +15,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class LoanService
@@ -22,11 +24,108 @@ class LoanService
         protected FinancialCalculationService $financialService,
         protected CreditWorkflowService $workflowService,
         protected InterestRateService $interestRates,
+        protected SimpleInterestService $simpleInterest,
+        protected AccountCheckService $accountCheck,
     ) {}
 
     /**
-     * Persist the granted loan after a committee approval. The schedule is
-     * generated only at disbursement so due dates follow the real value date.
+     * Octroi comité : crée le prêt ACTIVE, verse le capital sur l’épargne, génère l’échéancier.
+     *
+     * @param  array{
+     *     approved_amount?: float|int|string,
+     *     approved_duration_months?: int|string
+     * }  $decision
+     */
+    public function grantAndDisburse(CreditRequest $creditRequest, array $decision, User $actor): Loan
+    {
+        $creditRequest->loadMissing('client.financialAccounts');
+
+        $savings = $this->accountCheck->activeSavingsAccount($creditRequest->client);
+
+        if ($savings === null) {
+            throw ValidationException::withMessages([
+                'decision' => 'Le client n’a pas de compte épargne actif. L’octroi ne peut pas verser les fonds.',
+            ]);
+        }
+
+        $principal = (float) ($decision['approved_amount'] ?? $creditRequest->requested_amount);
+        $duration = (int) ($decision['approved_duration_months'] ?? $creditRequest->duration_months);
+        $quote = $this->simpleInterest->quote($principal, $duration);
+        $valueDate = now();
+
+        return DB::transaction(function () use ($creditRequest, $savings, $principal, $duration, $quote, $valueDate, $actor): Loan {
+            $account = FinancialAccount::query()->lockForUpdate()->findOrFail($savings->id);
+            $newBalance = round((float) $account->balance + $principal, 2);
+            $account->balance = $newBalance;
+            $account->available_balance = $newBalance;
+            $account->save();
+
+            $loan = Loan::updateOrCreate(
+                ['credit_request_id' => $creditRequest->id],
+                [
+                    'client_id' => $creditRequest->client_id,
+                    'savings_account_id' => $account->id,
+                    'principal_amount' => $principal,
+                    'interest_amount' => $quote['total_interest'],
+                    'total_amount' => $quote['total_amount'],
+                    'duration_months' => $duration,
+                    'annual_interest_rate_percent' => $quote['interest_rate'],
+                    'monthly_payment' => $quote['monthly_payment'],
+                    'disbursed_at' => $valueDate->toDateString(),
+                    'maturity_date' => $valueDate->copy()->addMonths($duration)->toDateString(),
+                    'outstanding_amount' => $quote['total_amount'],
+                    'funds_received' => $principal,
+                    'status' => LoanStatus::Active,
+                ]
+            );
+
+            AccountTransaction::create([
+                'account_id' => $account->id,
+                'transaction_type' => 'LOAN_DISBURSEMENT',
+                'type' => 'LOAN_DISBURSEMENT',
+                'direction' => 'CREDIT',
+                'amount' => $principal,
+                'transaction_date' => $valueDate,
+                'booked_at' => $valueDate,
+                'reference' => 'EP-PRET-'.$creditRequest->id,
+                'label' => 'Épargne + prêt #'.$creditRequest->id,
+                'description' => 'Épargne + prêt #'.$creditRequest->id,
+                'status' => 'COMPLETED',
+                'channel' => 'Compte épargne',
+                'balance_after' => $newBalance,
+            ]);
+
+            $this->generateScheduleFromQuote($loan, $valueDate, $quote['schedule']);
+
+            AuditLog::create([
+                'user_id' => $actor->id,
+                'action' => 'LOAN_DISBURSED',
+                'entity_type' => Loan::class,
+                'entity_id' => $loan->id,
+                'details' => [
+                    'credit_request_id' => $creditRequest->id,
+                    'principal_amount' => $principal,
+                    'disbursed_at' => $valueDate->toDateString(),
+                    'savings_account_id' => $account->id,
+                ],
+                'ip_address' => request()->ip(),
+            ]);
+
+            if ($creditRequest->client?->user_id) {
+                Notification::create([
+                    'user_id' => $creditRequest->client->user_id,
+                    'title' => 'Vos fonds ont été mis à disposition',
+                    'message' => "Votre crédit #{$loan->id} a été versé sur votre compte épargne. Consultez votre échéancier.",
+                    'type' => 'LOAN_DISBURSED',
+                ]);
+            }
+
+            return $loan->load(['repayments', 'creditRequest', 'savingsAccount']);
+        });
+    }
+
+    /**
+     * @deprecated Prefer grantAndDisburse at committee approval. Kept for legacy APPROVED loans without funds.
      *
      * @param  array{
      *     approved_amount?: float|int|string,
@@ -37,24 +136,22 @@ class LoanService
     {
         $principal = (float) ($decision['approved_amount'] ?? $creditRequest->requested_amount);
         $duration = (int) ($decision['approved_duration_months'] ?? $creditRequest->duration_months);
-        $rate = $this->interestRates->institutionalRate();
-        $monthlyPayment = $this->financialService->calculateEstimatedMonthlyPayment($principal, $duration, $rate);
-        $totalInterest = round(($monthlyPayment * $duration) - $principal, 2);
-        $totalAmount = round($principal + $totalInterest, 2);
+        $quote = $this->simpleInterest->quote($principal, $duration);
 
         return Loan::updateOrCreate(
             ['credit_request_id' => $creditRequest->id],
             [
                 'client_id' => $creditRequest->client_id,
                 'principal_amount' => $principal,
-                'interest_amount' => $totalInterest,
-                'total_amount' => $totalAmount,
+                'interest_amount' => $quote['total_interest'],
+                'total_amount' => $quote['total_amount'],
                 'duration_months' => $duration,
-                'annual_interest_rate_percent' => $rate,
-                'monthly_payment' => $monthlyPayment,
+                'annual_interest_rate_percent' => $quote['interest_rate'],
+                'monthly_payment' => $quote['monthly_payment'],
                 'disbursed_at' => null,
                 'maturity_date' => null,
-                'outstanding_amount' => $totalAmount,
+                'outstanding_amount' => $quote['total_amount'],
+                'funds_received' => 0,
                 'status' => LoanStatus::Approved,
             ]
         );
@@ -64,11 +161,11 @@ class LoanService
     {
         return DB::transaction(function () use ($loan, $actor, $disbursedAt, $comment): Loan {
             $lockedLoan = Loan::query()->lockForUpdate()->findOrFail($loan->id);
-            $lockedLoan->loadMissing('client.user');
+            $lockedLoan->loadMissing(['client.user', 'creditRequest.client']);
 
-            $creditRequest = $lockedLoan->credit_request_id
-                ? CreditRequest::query()->lockForUpdate()->findOrFail($lockedLoan->credit_request_id)
-                : null;
+            if ($lockedLoan->disbursed_at !== null || (float) $lockedLoan->funds_received > 0) {
+                throw new InvalidArgumentException('Les fonds sont déjà versés. Un second décaissement n’est pas possible.');
+            }
 
             if ($lockedLoan->status !== LoanStatus::Approved) {
                 throw new InvalidArgumentException('Seul un crédit déjà accordé peut être décaissé.');
@@ -78,24 +175,53 @@ class LoanService
                 throw new InvalidArgumentException('Ce crédit a déjà des remboursements enregistrés.');
             }
 
-            $valueDate = Carbon::parse($disbursedAt?->toDateString() ?? now()->toDateString());
+            $client = $lockedLoan->client ?? $lockedLoan->creditRequest?->client;
+            $savings = $client ? $this->accountCheck->activeSavingsAccount($client) : null;
 
+            if ($savings === null) {
+                throw ValidationException::withMessages([
+                    'loan' => 'Le client n’a pas de compte épargne actif. L’octroi ne peut pas verser les fonds.',
+                ]);
+            }
+
+            $valueDate = Carbon::parse($disbursedAt?->toDateString() ?? now()->toDateString());
+            $principal = (float) $lockedLoan->principal_amount;
+            $quote = $this->simpleInterest->quote($principal, (int) $lockedLoan->duration_months, (float) $lockedLoan->annual_interest_rate_percent);
+
+            $account = FinancialAccount::query()->lockForUpdate()->findOrFail($savings->id);
+            $newBalance = round((float) $account->balance + $principal, 2);
+            $account->balance = $newBalance;
+            $account->available_balance = $newBalance;
+            $account->save();
+
+            $lockedLoan->savings_account_id = $account->id;
             $lockedLoan->disbursed_at = $valueDate->toDateString();
             $lockedLoan->maturity_date = $valueDate->copy()->addMonths($lockedLoan->duration_months)->toDateString();
+            $lockedLoan->funds_received = $principal;
+            $lockedLoan->interest_amount = $quote['total_interest'];
+            $lockedLoan->total_amount = $quote['total_amount'];
+            $lockedLoan->monthly_payment = $quote['monthly_payment'];
+            $lockedLoan->outstanding_amount = $quote['total_amount'];
             $lockedLoan->status = LoanStatus::Active;
             $lockedLoan->save();
 
-            $this->generateSchedule($lockedLoan, $valueDate);
+            AccountTransaction::create([
+                'account_id' => $account->id,
+                'transaction_type' => 'LOAN_DISBURSEMENT',
+                'type' => 'LOAN_DISBURSEMENT',
+                'direction' => 'CREDIT',
+                'amount' => $principal,
+                'transaction_date' => $valueDate,
+                'booked_at' => $valueDate,
+                'reference' => 'EP-PRET-'.($lockedLoan->credit_request_id ?? $lockedLoan->id),
+                'label' => 'Épargne + prêt #'.($lockedLoan->credit_request_id ?? $lockedLoan->id),
+                'description' => 'Épargne + prêt #'.($lockedLoan->credit_request_id ?? $lockedLoan->id),
+                'status' => 'COMPLETED',
+                'channel' => 'Compte épargne',
+                'balance_after' => $newBalance,
+            ]);
 
-            if ($creditRequest) {
-                $creditRequest->loadMissing('client.user');
-                $this->workflowService->transitionStatus(
-                    $creditRequest,
-                    CreditRequestStatus::Disbursed,
-                    $actor,
-                    $comment ?? 'Décaissement du crédit accordé'
-                );
-            }
+            $this->generateScheduleFromQuote($lockedLoan, $valueDate, $quote['schedule']);
 
             AuditLog::create([
                 'user_id' => $actor->id,
@@ -111,7 +237,7 @@ class LoanService
                 'ip_address' => request()->ip(),
             ]);
 
-            $notifyUserId = $creditRequest?->client?->user?->id ?? $lockedLoan->client?->user?->id;
+            $notifyUserId = $lockedLoan->creditRequest?->client?->user_id ?? $lockedLoan->client?->user_id;
             if ($notifyUserId) {
                 Notification::create([
                     'user_id' => $notifyUserId,
@@ -194,15 +320,26 @@ class LoanService
 
     public function generateSchedule(Loan $loan, CarbonInterface $fromDate): void
     {
+        $quote = $this->simpleInterest->quote(
+            (float) $loan->principal_amount,
+            (int) $loan->duration_months,
+            (float) $loan->annual_interest_rate_percent
+        );
+
+        $this->generateScheduleFromQuote($loan, $fromDate, $quote['schedule']);
+    }
+
+    /**
+     * @param  list<array{installment: int, expected_amount: float}>  $schedule
+     */
+    protected function generateScheduleFromQuote(Loan $loan, CarbonInterface $fromDate, array $schedule): void
+    {
         $loan->repayments()->delete();
 
-        $duration = (int) $loan->duration_months;
-        $monthlyPayment = (float) $loan->monthly_payment;
-
-        for ($month = 1; $month <= $duration; $month++) {
+        foreach ($schedule as $row) {
             $loan->repayments()->create([
-                'due_date' => $fromDate->copy()->addMonths($month)->toDateString(),
-                'expected_amount' => $monthlyPayment,
+                'due_date' => $fromDate->copy()->addMonths($row['installment'])->toDateString(),
+                'expected_amount' => $row['expected_amount'],
                 'paid_amount' => 0,
                 'days_late' => 0,
                 'status' => LoanRepaymentStatus::Pending,

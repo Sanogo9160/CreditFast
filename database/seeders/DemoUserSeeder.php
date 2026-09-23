@@ -54,6 +54,9 @@ class DemoUserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $analystRole?->id,
                 'status' => 'active',
+                'agency_code' => 'BKO',
+                'zone_codes' => ['BKO-CENTRE', 'BKO-EST', 'BKO-OUEST'],
+                'available' => true,
             ]
         );
 
@@ -66,6 +69,9 @@ class DemoUserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $committeeRole?->id,
                 'status' => 'active',
+                'agency_code' => 'BKO',
+                'zone_codes' => ['BKO-CENTRE', 'BKO-EST', 'BKO-OUEST'],
+                'available' => true,
             ]
         );
 
@@ -78,6 +84,9 @@ class DemoUserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $agentRole?->id,
                 'status' => 'active',
+                'agency_code' => 'BKO',
+                'zone_codes' => ['BKO-CENTRE', 'BKO-EST', 'BKO-OUEST'],
+                'available' => true,
             ]
         );
 
@@ -102,7 +111,7 @@ class DemoUserSeeder extends Seeder
                 'date_of_birth' => '1988-05-14',
                 'address' => 'Commune IV, Hamdallaye ACI 2000',
                 'city' => 'Bamako',
-                'residential_zone' => 'ACI 2000',
+                'residential_zone' => 'BKO-CENTRE',
                 'occupation' => 'Commerçant Grossiste',
                 'kyc_status' => KycStatus::Verified,
                 'institution_verified_at' => now(),
@@ -142,6 +151,9 @@ class DemoUserSeeder extends Seeder
             [
                 'account_type' => 'SAVINGS',
                 'balance' => 1250000,
+                'available_balance' => 1250000,
+                'blocked_balance' => 0,
+                'agency_code' => 'BKO',
                 'opened_at' => '2020-01-15',
                 'status' => 'ACTIVE',
             ]
@@ -182,7 +194,7 @@ class DemoUserSeeder extends Seeder
                 'date_of_birth' => '1995-11-20',
                 'address' => 'Badalabougou, Rue 110',
                 'city' => 'Bamako',
-                'residential_zone' => 'Badalabougou',
+                'residential_zone' => 'BKO-CENTRE',
                 'occupation' => 'Couturière / Styliste',
                 'kyc_status' => KycStatus::Pending,
             ]
@@ -219,6 +231,9 @@ class DemoUserSeeder extends Seeder
             [
                 'account_type' => 'SAVINGS',
                 'balance' => 280000,
+                'available_balance' => 280000,
+                'blocked_balance' => 0,
+                'agency_code' => 'BKO',
                 'opened_at' => '2023-03-01',
                 'status' => 'ACTIVE',
             ]
@@ -242,6 +257,8 @@ class DemoUserSeeder extends Seeder
         $ocrService = app(OcrExtractionService::class);
         $scoringEngine = app(CreditScoringEngine::class);
 
+        $agent = User::where('email', 'agent@creditfast.com')->firstOrFail();
+
         // Standard Credit Request
         $reqStandard = CreditRequest::updateOrCreate(
             ['client_id' => $clientStandard->id, 'purpose' => 'Achat de stock céréales récolte'],
@@ -253,10 +270,15 @@ class DemoUserSeeder extends Seeder
                 'duration_months' => 12,
                 'declared_monthly_income' => 850000,
                 'declared_monthly_expenses' => 300000,
+                'ongoing_credit_count' => 0,
                 'estimated_monthly_payment' => $finService->calculateEstimatedMonthlyPayment(1500000, 12),
                 'disposable_income' => $disposableStandard,
                 'repayment_capacity_status' => $finService->evaluateRepaymentCapacity($disposableStandard, 133000),
                 'status' => CreditRequestStatus::Submitted,
+                'agency_code' => 'BKO',
+                'zone_code' => 'BKO-CENTRE',
+                'assigned_agent_id' => $agent->id,
+                'assignment_reason' => 'Seed démo',
                 'submitted_at' => now()->subDays(2),
             ]
         );
@@ -295,10 +317,15 @@ class DemoUserSeeder extends Seeder
                 'duration_months' => 10,
                 'declared_monthly_income' => 450000,
                 'declared_monthly_expenses' => 180000,
+                'ongoing_credit_count' => 0,
                 'estimated_monthly_payment' => $finService->calculateEstimatedMonthlyPayment(600000, 10),
                 'disposable_income' => $disposableColdStart,
                 'repayment_capacity_status' => $finService->evaluateRepaymentCapacity($disposableColdStart, 63000),
                 'status' => CreditRequestStatus::Submitted,
+                'agency_code' => 'BKO',
+                'zone_code' => 'BKO-CENTRE',
+                'assigned_agent_id' => $agent->id,
+                'assignment_reason' => 'Seed démo',
                 'submitted_at' => now()->subDays(1),
             ]
         );

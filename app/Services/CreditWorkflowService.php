@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CreditRequestStatus;
+use App\Enums\RoleName;
 use App\Models\AuditLog;
 use App\Models\CreditRequest;
 use App\Models\CreditStatusHistory;
@@ -80,18 +81,115 @@ class CreditWorkflowService
     public function isTransitionAllowed(CreditRequestStatus $old, CreditRequestStatus $new): bool
     {
         $allowedMap = [
-            CreditRequestStatus::Draft->value => [CreditRequestStatus::Submitted->value, CreditRequestStatus::Rejected->value],
-            CreditRequestStatus::Submitted->value => [CreditRequestStatus::Analysis->value, CreditRequestStatus::VerificationRequired->value, CreditRequestStatus::CreditReview->value, CreditRequestStatus::Committee->value, CreditRequestStatus::Rejected->value],
-            CreditRequestStatus::Analysis->value => [CreditRequestStatus::VerificationRequired->value, CreditRequestStatus::CreditReview->value, CreditRequestStatus::Committee->value, CreditRequestStatus::Rejected->value],
-            CreditRequestStatus::VerificationRequired->value => [CreditRequestStatus::Analysis->value, CreditRequestStatus::CreditReview->value, CreditRequestStatus::Committee->value, CreditRequestStatus::Rejected->value],
-            CreditRequestStatus::CreditReview->value => [CreditRequestStatus::Committee->value, CreditRequestStatus::VerificationRequired->value, CreditRequestStatus::Rejected->value],
-            CreditRequestStatus::Committee->value => [CreditRequestStatus::Approved->value, CreditRequestStatus::Rejected->value],
-            CreditRequestStatus::Approved->value => [CreditRequestStatus::Disbursed->value],
+            CreditRequestStatus::Draft->value => [
+                CreditRequestStatus::Submitted->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::Submitted->value => [
+                CreditRequestStatus::Received->value,
+                CreditRequestStatus::UnderReview->value,
+                CreditRequestStatus::InAnalysis->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::Received->value => [
+                CreditRequestStatus::UnderReview->value,
+                CreditRequestStatus::InAnalysis->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::UnderReview->value => [
+                CreditRequestStatus::InAnalysis->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::VerificationRequired->value => [
+                CreditRequestStatus::Submitted->value,
+                CreditRequestStatus::UnderReview->value,
+                CreditRequestStatus::InAnalysis->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::InAnalysis->value => [
+                CreditRequestStatus::PendingAnalysis->value,
+                CreditRequestStatus::PendingCommittee->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::PendingAnalysis->value => [
+                CreditRequestStatus::PendingCommittee->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::PendingCommittee->value => [
+                CreditRequestStatus::Committee->value,
+                CreditRequestStatus::Approved->value,
+                CreditRequestStatus::Amended->value,
+                CreditRequestStatus::Adjourned->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::Committee->value => [
+                CreditRequestStatus::Approved->value,
+                CreditRequestStatus::Amended->value,
+                CreditRequestStatus::Adjourned->value,
+                CreditRequestStatus::VerificationRequired->value,
+                CreditRequestStatus::Rejected->value,
+            ],
+            CreditRequestStatus::Approved->value => [],
+            CreditRequestStatus::Amended->value => [],
             CreditRequestStatus::Rejected->value => [],
-            CreditRequestStatus::Disbursed->value => [],
+            CreditRequestStatus::Adjourned->value => [],
         ];
 
-        return in_array($new->value, $allowedMap[$old->value] ?? []);
+        return in_array($new->value, $allowedMap[$old->value] ?? [], true);
+    }
+
+    public function assertActorOwnsStep(User $user, CreditRequest $creditRequest): void
+    {
+        if ($user->hasRole(RoleName::Admin)) {
+            return;
+        }
+
+        if ($creditRequest->status->isClosed()) {
+            abort(403, 'Ce dossier est clos. Cette étape est verrouillée.');
+        }
+
+        if ($creditRequest->status === CreditRequestStatus::Adjourned) {
+            abort(403, 'Ce dossier est ajourné. Le vote est verrouillé.');
+        }
+
+        if ($user->hasRole(RoleName::CreditAgent)) {
+            $owns = in_array($creditRequest->status, CreditRequestStatus::agentOwned(), true)
+                && (int) $creditRequest->assigned_agent_id === (int) $user->id;
+
+            if (! $owns) {
+                abort(403, 'Ce dossier est verrouillé. Il n’est pas à votre étape ou ne vous est pas affecté.');
+            }
+
+            return;
+        }
+
+        if ($user->hasRole(RoleName::Analyst)) {
+            if (! in_array($creditRequest->status, CreditRequestStatus::analystOwned(), true)) {
+                abort(403, 'Ce dossier est verrouillé. Il n’est pas à l’étape d’analyse.');
+            }
+
+            if ($user->agency_code && $creditRequest->agency_code && $user->agency_code !== $creditRequest->agency_code) {
+                abort(403, 'Ce dossier appartient à une autre agence.');
+            }
+
+            return;
+        }
+
+        if ($user->hasRole(RoleName::CommitteeMember)) {
+            if (! in_array($creditRequest->status, CreditRequestStatus::committeeOwned(), true)) {
+                abort(403, 'Ce dossier est verrouillé. Il n’est pas à l’étape du comité.');
+            }
+
+            if ($user->agency_code && $creditRequest->agency_code && $user->agency_code !== $creditRequest->agency_code) {
+                abort(403, 'Ce dossier appartient à une autre agence.');
+            }
+        }
     }
 
     /**
@@ -109,37 +207,32 @@ class CreditWorkflowService
             ],
             CreditRequestStatus::VerificationRequired => [
                 'Votre dossier vous est renvoyé',
-                "Votre demande #{$id} vous a été renvoyée afin que vous puissiez transmettre les pièces ou informations manquantes (par exemple un justificatif de domicile). Merci de vous connecter pour compléter votre dossier : cela nous permettra de poursuivre l’examen.",
+                "Votre demande #{$id} vous a été renvoyée afin que vous puissiez transmettre les pièces ou informations manquantes. Merci de vous connecter pour compléter votre dossier.",
                 'COMPLEMENTS_REQUESTED',
             ],
-            CreditRequestStatus::Analysis => [
+            CreditRequestStatus::InAnalysis, CreditRequestStatus::PendingAnalysis => [
                 'Votre demande est en cours d’examen',
                 "Votre demande #{$id} est actuellement étudiée par notre équipe. Nous vous tiendrons informé(e) de la suite.",
                 'STATUS_UPDATE',
             ],
-            CreditRequestStatus::CreditReview => [
-                'Examen approfondi en cours',
-                "Votre demande #{$id} fait l’objet d’un examen détaillé. Aucune décision n’est encore prise.",
-                'STATUS_UPDATE',
-            ],
-            CreditRequestStatus::Committee => [
+            CreditRequestStatus::PendingCommittee, CreditRequestStatus::Committee => [
                 'Votre demande est présentée au comité',
                 "Votre demande #{$id} a été transmise au comité. La décision d’octroi reste humaine et vous sera communiquée.",
                 'STATUS_UPDATE',
             ],
-            CreditRequestStatus::Approved => [
+            CreditRequestStatus::Approved, CreditRequestStatus::Amended => [
                 'Bonne nouvelle : votre crédit est accordé',
-                "Votre demande #{$id} a été acceptée. Les fonds seront mis à disposition après le décaissement par l’agence.",
+                "Votre demande #{$id} a été acceptée. Les fonds ont été versés sur votre compte épargne.",
+                'STATUS_UPDATE',
+            ],
+            CreditRequestStatus::Adjourned => [
+                'Votre demande a été ajournée',
+                "Votre demande #{$id} a été ajournée. Consultez le dossier pour savoir pourquoi et quoi faire ensuite.",
                 'STATUS_UPDATE',
             ],
             CreditRequestStatus::Rejected => [
                 'Décision concernant votre demande',
-                "Après examen, votre demande #{$id} n’a pas pu être retenue cette fois-ci. Notre équipe reste à votre écoute pour en discuter et vous accompagner.",
-                'STATUS_UPDATE',
-            ],
-            CreditRequestStatus::Disbursed => [
-                'Vos fonds ont été mis à disposition',
-                "Votre crédit lié à la demande #{$id} a été décaissé. Vous pouvez consulter le montant reçu et votre échéancier.",
+                "Après examen, votre demande #{$id} n’a pas pu être retenue cette fois-ci.",
                 'STATUS_UPDATE',
             ],
             default => [
@@ -153,7 +246,8 @@ class CreditWorkflowService
     protected function statusHistoryComment(CreditRequestStatus $newStatus): string
     {
         return match ($newStatus) {
-            CreditRequestStatus::VerificationRequired => 'Dossier renvoyé au client pour pièces ou informations complémentaires.',
+            CreditRequestStatus::VerificationRequired => 'Dossier renvoyé pour pièces ou informations complémentaires.',
+            CreditRequestStatus::Adjourned => 'Dossier ajourné par le comité.',
             default => "Passage à l’étape {$newStatus->value}",
         };
     }

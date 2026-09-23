@@ -6,7 +6,10 @@ use App\Enums\RepaymentCapacityStatus;
 
 class CreditSimulationService
 {
-    public function __construct(protected FinancialCalculationService $financialService) {}
+    public function __construct(
+        protected FinancialCalculationService $financialService,
+        protected SimpleInterestService $simpleInterest,
+    ) {}
 
     /**
      * Compare several amount/duration pairs against repayment capacity.
@@ -16,6 +19,7 @@ class CreditSimulationService
      * @return array{
      *     capacity: array<string, float|string>,
      *     annual_interest_rate_percent: float,
+     *     interest_rate: float,
      *     disclaimer: string,
      *     scenarios: list<array<string, mixed>>
      * }
@@ -40,7 +44,8 @@ class CreditSimulationService
         foreach ($scenarios as $index => $scenario) {
             $amount = (float) $scenario['requested_amount'];
             $duration = (int) $scenario['duration_months'];
-            $monthlyPayment = $this->financialService->calculateEstimatedMonthlyPayment($amount, $duration, $rate);
+            $quote = $this->simpleInterest->quote($amount, $duration, $rate);
+            $monthlyPayment = $quote['monthly_payment'];
             $capacity = $this->financialService->evaluateRepaymentCapacity($disposable, $monthlyPayment);
             $dti = $this->financialService->calculateDebtToIncomeRatio(
                 $monthlyExpenses,
@@ -49,15 +54,18 @@ class CreditSimulationService
                 $totalIncome
             );
             $remainingAfterPayment = round($disposable - $monthlyPayment, 2);
-            $totalCost = round($monthlyPayment * $duration, 2);
 
             $compared[] = [
                 'index' => $index + 1,
                 'requested_amount' => $amount,
                 'duration_months' => $duration,
+                'interest_rate' => $quote['interest_rate'],
+                'monthly_payment' => $monthlyPayment,
+                'total_interest' => $quote['total_interest'],
+                'total_amount' => $quote['total_amount'],
                 'estimated_monthly_payment' => $monthlyPayment,
-                'estimated_total_cost' => $totalCost,
-                'estimated_interest_amount' => round($totalCost - $amount, 2),
+                'estimated_total_cost' => $quote['total_amount'],
+                'estimated_interest_amount' => $quote['total_interest'],
                 'remaining_after_payment' => $remainingAfterPayment,
                 'repayment_capacity_status' => $capacity->value,
                 'debt_to_income_ratio' => $dti,
@@ -75,7 +83,8 @@ class CreditSimulationService
                 'disposable_income' => $disposable,
             ],
             'annual_interest_rate_percent' => $rate,
-            'disclaimer' => 'Simulation d’aide à la décision. Taux d’intérêt institutionnel unique (15 %). Le score et cette simulation ne décident pas de l’octroi.',
+            'interest_rate' => $rate,
+            'disclaimer' => 'Simulation d’aide à la décision. Taux d’intérêt institutionnel unique (15 %). Intérêt simple. Le score et cette simulation ne décident pas de l’octroi.',
             'scenarios' => $compared,
         ];
     }

@@ -20,14 +20,18 @@ use App\Models\Client;
 use App\Models\CreditRequest;
 use App\Models\Document;
 use App\Models\Guarantee;
+use App\Services\AccountCheckService;
+use App\Services\AgentAssignmentService;
 use App\Services\AnomalyDetectionService;
 use App\Services\CreditWorkflowService;
 use App\Services\FinancialCalculationService;
 use App\Services\OcrExtractionService;
+use App\Support\InstitutionalAccountRequirement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
 
 class CreditRequestController extends Controller
@@ -36,7 +40,9 @@ class CreditRequestController extends Controller
         protected FinancialCalculationService $finService,
         protected CreditWorkflowService $workflowService,
         protected OcrExtractionService $ocrService,
-        protected AnomalyDetectionService $anomalyService
+        protected AnomalyDetectionService $anomalyService,
+        protected AccountCheckService $accountCheck,
+        protected AgentAssignmentService $assignments,
     ) {}
 
     #[OA\Get(
@@ -56,26 +62,46 @@ class CreditRequestController extends Controller
         $this->authorize('viewAny', CreditRequest::class);
 
         $user = $request->user();
-        $query = CreditRequest::query()
+        $base = CreditRequest::query();
+
+        if (! $user->isStaff()) {
+            $client = $user->client;
+            if (! $client) {
+                return response()->json([
+                    'data' => [],
+                    'meta' => ['current_page' => 1, 'last_page' => 1, 'total' => 0],
+                    'counters' => ['all' => 0, 'drafts' => 0, 'in_progress' => 0, 'granted' => 0],
+                ]);
+            }
+            $base->forClient($client->id);
+        }
+
+        $countersQuery = clone $base;
+        $counters = [
+            'all' => (clone $countersQuery)->count(),
+            'drafts' => (clone $countersQuery)->where('status', CreditRequestStatus::Draft)->count(),
+            'in_progress' => (clone $countersQuery)->whereNotIn('status', [
+                CreditRequestStatus::Draft,
+                ...CreditRequestStatus::closed(),
+            ])->count(),
+            'granted' => (clone $countersQuery)->whereIn('status', [
+                CreditRequestStatus::Approved,
+                CreditRequestStatus::Amended,
+            ])->count(),
+        ];
+
+        $requests = (clone $base)
             ->with([
                 'client.user',
                 'activity',
                 'latestAnalysis',
                 'anomalies',
                 'documents',
+                'assignedAgent',
             ])
             ->latest()
-            ->orderByDesc('id');
-
-        if (! $user->isStaff()) {
-            $client = $user->client;
-            if (! $client) {
-                return response()->json(['data' => [], 'meta' => ['current_page' => 1, 'last_page' => 1, 'total' => 0]]);
-            }
-            $query->forClient($client->id);
-        }
-
-        $requests = $query->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(15);
 
         return response()->json([
             'data' => CreditRequestResource::collection($requests),
@@ -84,6 +110,7 @@ class CreditRequestController extends Controller
                 'last_page' => $requests->lastPage(),
                 'total' => $requests->total(),
             ],
+            'counters' => $counters,
         ]);
     }
 
@@ -111,8 +138,6 @@ class CreditRequestController extends Controller
 
         $requestedAmount = (float) $validated['requested_amount'];
         $durationMonths = (int) $validated['duration_months'];
-        $declaredIncome = (float) $validated['declared_monthly_income'];
-        $declaredExpenses = (float) $validated['declared_monthly_expenses'];
 
         $creditRequest = CreditRequest::create([
             'client_id' => $client->id,
@@ -122,7 +147,7 @@ class CreditRequestController extends Controller
             'requested_amount' => $requestedAmount,
             'duration_months' => $durationMonths,
             'purpose' => $validated['purpose'],
-            ...$this->snapshotCapacity($client, $requestedAmount, $durationMonths, $declaredIncome, $declaredExpenses),
+            ...$this->snapshotCapacity($client, $requestedAmount, $durationMonths),
             'status' => CreditRequestStatus::Draft,
         ]);
 
@@ -162,20 +187,21 @@ class CreditRequestController extends Controller
     public function update(UpdateCreditRequest $request, CreditRequest $creditRequest): JsonResponse
     {
         $client = $creditRequest->client()->with('financialProfile')->firstOrFail();
-        $validated = $request->validated();
+        $validated = $request->safe()->except([
+            'declared_monthly_income',
+            'declared_monthly_expenses',
+            'ongoing_credit_count',
+            'existing_debt_payment',
+        ]);
 
         $requestedAmount = (float) ($validated['requested_amount'] ?? $creditRequest->requested_amount);
         $durationMonths = (int) ($validated['duration_months'] ?? $creditRequest->duration_months);
-        $declaredIncome = (float) ($validated['declared_monthly_income'] ?? $creditRequest->declared_monthly_income);
-        $declaredExpenses = (float) ($validated['declared_monthly_expenses'] ?? $creditRequest->declared_monthly_expenses);
 
         $creditRequest->update([
             ...$validated,
             'requested_amount' => $requestedAmount,
             'duration_months' => $durationMonths,
-            'declared_monthly_income' => $declaredIncome,
-            'declared_monthly_expenses' => $declaredExpenses,
-            ...$this->snapshotCapacity($client, $requestedAmount, $durationMonths, $declaredIncome, $declaredExpenses),
+            ...$this->snapshotCapacity($client, $requestedAmount, $durationMonths),
         ]);
 
         return response()->json([
@@ -274,18 +300,50 @@ class CreditRequestController extends Controller
     {
         $this->authorize('submit', $creditRequest);
 
-        $creditRequest->loadMissing('client.financialAccounts');
+        if (! in_array($creditRequest->status, [
+            CreditRequestStatus::Draft,
+            CreditRequestStatus::VerificationRequired,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Seuls les dossiers en brouillon ou renvoyés pour complément peuvent être soumis.',
+            ]);
+        }
 
-        if ($creditRequest->client === null || $creditRequest->client->financialAccounts->isEmpty()) {
+        $creditRequest->loadMissing(['client.financialAccounts', 'client.financialProfile']);
+        $client = $creditRequest->client;
+        $savings = $client ? $this->accountCheck->activeSavingsAccount($client) : null;
+
+        if ($client === null || $savings === null) {
+            $clientType = $client?->client_type;
+
             return response()->json([
-                'message' => 'La demande ne peut pas être transmise sans compte en banque ou en institution.',
+                'message' => InstitutionalAccountRequirement::submitBlockedMessage(),
                 'errors' => [
-                    'client' => [
-                        'Une demande de crédit nécessite un compte en banque ou en institution. Contactez votre chargé de crédit pour l’enregistrer.',
+                    InstitutionalAccountRequirement::ERROR_FIELD => [
+                        InstitutionalAccountRequirement::message(
+                            $clientType instanceof ClientType ? $clientType : null
+                        ),
                     ],
+                ],
+                'next_step' => [
+                    'action' => 'open_savings_pre_application',
+                    'endpoint' => '/api/profile/savings-pre-applications',
                 ],
             ], 422);
         }
+
+        $agencyCode = $savings->agency_code;
+        $zoneCode = $client->residential_zone;
+
+        if (! filled($agencyCode) || ! filled($zoneCode)) {
+            throw ValidationException::withMessages([
+                'zone_code' => 'La zone choisie doit appartenir à l’agence du compte épargne. Corrigez la zone, ou faites corriger le rattachement en agence.',
+            ]);
+        }
+
+        $this->assignments->assertZoneBelongsToAgency((string) $agencyCode, (string) $zoneCode);
+
+        $alreadyAssigned = $creditRequest->assigned_agent_id !== null;
 
         $updated = $this->workflowService->transitionStatus(
             $creditRequest,
@@ -294,11 +352,26 @@ class CreditRequestController extends Controller
             'Soumission de la demande par le demandeur'
         );
 
+        $updated->forceFill($this->snapshotCapacity(
+            $client,
+            (float) $updated->requested_amount,
+            (int) $updated->duration_months
+        ))->save();
+
+        if (! $alreadyAssigned) {
+            $this->assignments->assignOnSubmit($updated, (string) $agencyCode, (string) $zoneCode);
+        } else {
+            $updated->forceFill([
+                'agency_code' => $agencyCode,
+                'zone_code' => $zoneCode,
+            ])->save();
+        }
+
         $this->anomalyService->detectAnomalies($updated);
 
         return response()->json([
             'message' => 'Votre demande a bien été transmise. Notre équipe va l’examiner avec attention.',
-            'credit_request' => new CreditRequestResource($updated->fresh(['anomalies'])),
+            'credit_request' => new CreditRequestResource($updated->fresh(['anomalies', 'assignedAgent'])),
         ]);
     }
 
@@ -625,6 +698,7 @@ class CreditRequestController extends Controller
      * @return array{
      *     declared_monthly_income: float,
      *     declared_monthly_expenses: float,
+     *     ongoing_credit_count: int,
      *     estimated_monthly_payment: float,
      *     disposable_income: float,
      *     repayment_capacity_status: RepaymentCapacityStatus
@@ -633,22 +707,23 @@ class CreditRequestController extends Controller
     protected function snapshotCapacity(
         Client $client,
         float $requestedAmount,
-        int $durationMonths,
-        float $declaredIncome,
-        float $declaredExpenses
+        int $durationMonths
     ): array {
+        $check = $this->accountCheck->forClient($client);
         $profile = $client->financialProfile;
+        $ongoingDebt = $this->accountCheck->ongoingMonthlyDebt($client);
         $estimatedMonthlyPayment = $this->finService->calculateEstimatedMonthlyPayment($requestedAmount, $durationMonths);
         $disposableIncome = $this->finService->calculateDisposableIncome(
-            $declaredIncome,
+            $check['monthly_income'],
             (float) ($profile?->other_income ?? 0),
-            $declaredExpenses,
-            (float) ($profile?->existing_debt_payment ?? 0)
+            $check['monthly_expenses'],
+            $ongoingDebt
         );
 
         return [
-            'declared_monthly_income' => $declaredIncome,
-            'declared_monthly_expenses' => $declaredExpenses,
+            'declared_monthly_income' => $check['monthly_income'],
+            'declared_monthly_expenses' => $check['monthly_expenses'],
+            'ongoing_credit_count' => $check['ongoing_credit_count'],
             'estimated_monthly_payment' => $estimatedMonthlyPayment,
             'disposable_income' => $disposableIncome,
             'repayment_capacity_status' => $this->finService->evaluateRepaymentCapacity($disposableIncome, $estimatedMonthlyPayment),

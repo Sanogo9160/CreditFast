@@ -91,7 +91,7 @@ class FieldVisitController extends Controller
         operationId: 'agentFieldVisitsStore',
         tags: ['Visites terrain'],
         summary: '[Créer] Planifier une visite / un rendez-vous terrain',
-        description: '**Rôles :** Chargé, Admin. Dossier en `SUBMITTED`, `VERIFICATION_REQUIRED`, `ANALYSIS` ou `CREDIT_REVIEW`. Notifie le client.',
+        description: '**Rôles :** Chargé, Admin. Dossier en `SUBMITTED`, `VERIFICATION_REQUIRED`, `IN_ANALYSIS` ou `PENDING_COMMITTEE`. Notifie le client.',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(ref: '#/components/parameters/CreditRequestId')],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StoreFieldVisitRequest')),

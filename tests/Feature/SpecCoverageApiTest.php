@@ -166,11 +166,17 @@ class SpecCoverageApiTest extends TestCase
         $agent = User::where('email', 'agent@creditfast.com')->firstOrFail();
         $admin = User::where('email', 'admin@creditfast.com')->firstOrFail();
         $creditRequest = CreditRequest::firstOrFail();
-        $creditRequest->update(['status' => CreditRequestStatus::Submitted]);
+        $creditRequest->update([
+            'status' => CreditRequestStatus::Submitted,
+            'assigned_agent_id' => $agent->id,
+            'agency_code' => 'BKO',
+            'zone_code' => 'BKO-CENTRE',
+        ]);
 
         Sanctum::actingAs($agent);
         $this->postJson("/api/agent/requests/{$creditRequest->id}/request-complements", [
-            'comment' => 'Merci de joindre une pièce d’identité lisible.',
+            'subject' => 'PIECE',
+            'detail' => 'Merci de joindre une pièce d’identité lisible.',
         ])->assertOk()
             ->assertJsonPath('returned_to_client', true)
             ->assertJsonPath('next_actor', 'client')

@@ -17,6 +17,13 @@ class AccountTransaction extends Model
         'transaction_date',
         'reference',
         'description',
+        'type',
+        'direction',
+        'label',
+        'booked_at',
+        'status',
+        'channel',
+        'balance_after',
     ];
 
     protected function casts(): array
@@ -24,6 +31,8 @@ class AccountTransaction extends Model
         return [
             'amount' => 'decimal:2',
             'transaction_date' => 'datetime',
+            'booked_at' => 'datetime',
+            'balance_after' => 'decimal:2',
         ];
     }
 

@@ -22,18 +22,24 @@ class LoanDisbursementTest extends TestCase
         $this->seed();
     }
 
-    public function test_committee_approval_creates_loan_without_schedule(): void
+    public function test_committee_approval_disburses_loan_immediately(): void
     {
         $loan = $this->approveStandardClientLoan();
 
-        $this->assertEquals(LoanStatus::Approved, $loan->status);
+        $this->assertEquals(LoanStatus::Active, $loan->status);
         $this->assertSame(15.0, (float) $loan->annual_interest_rate_percent);
-        $this->assertNull($loan->disbursed_at);
-        $this->assertSame(0, $loan->repayments()->count());
+        $this->assertNotNull($loan->disbursed_at);
+        $this->assertSame(6, $loan->repayments()->count());
+        $this->assertGreaterThan(0, (float) $loan->funds_received);
         $this->assertEquals(CreditRequestStatus::Approved, $loan->creditRequest->status);
+        $this->assertDatabaseHas('account_transactions', [
+            'type' => 'LOAN_DISBURSEMENT',
+            'reference' => 'EP-PRET-'.$loan->credit_request_id,
+            'direction' => 'CREDIT',
+        ]);
     }
 
-    public function test_committee_member_cannot_disburse(): void
+    public function test_committee_member_cannot_disburse_again(): void
     {
         $loan = $this->approveStandardClientLoan();
         $committee = User::where('email', 'comite@creditfast.com')->firstOrFail();
@@ -53,46 +59,21 @@ class LoanDisbursementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_credit_agent_disburses_loan_and_generates_schedule(): void
+    public function test_second_disbursement_after_committee_grant_fails(): void
     {
         $loan = $this->approveStandardClientLoan();
         $agent = User::where('email', 'agent@creditfast.com')->firstOrFail();
 
         Sanctum::actingAs($agent);
-        $response = $this->postJson("/api/loans/{$loan->id}/disburse", [
+        $this->postJson("/api/loans/{$loan->id}/disburse", [
             'disbursed_at' => now()->toDateString(),
-            'comment' => 'Décaissement agence ACI 2000',
-        ]);
-
-        $response->assertOk()
-            ->assertJsonPath('loan.status', LoanStatus::Active->value)
-            ->assertJsonPath('loan.disbursed_at', now()->toDateString());
-
-        $this->assertCount(6, $response->json('loan.repayments'));
-        $this->assertEquals(
-            now()->addMonths(1)->toDateString(),
-            $response->json('loan.repayments.0.due_date')
-        );
-        $this->assertEquals(CreditRequestStatus::Disbursed, $loan->creditRequest()->first()->status);
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'LOAN_DISBURSED',
-            'entity_id' => $loan->id,
-        ]);
-    }
-
-    public function test_cannot_disburse_the_same_loan_twice(): void
-    {
-        $loan = $this->disburseStandardClientLoan();
-        $agent = User::where('email', 'agent@creditfast.com')->firstOrFail();
-
-        Sanctum::actingAs($agent);
-        $this->postJson("/api/loans/{$loan->id}/disburse")
-            ->assertStatus(422);
+            'comment' => 'Second décaissement',
+        ])->assertStatus(422);
     }
 
     public function test_client_can_view_own_schedule_but_not_another_clients_loan(): void
     {
-        $loan = $this->disburseStandardClientLoan();
+        $loan = $this->approveStandardClientLoan();
         $owner = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
         $other = User::where('email', 'client.coldstart@creditfast.com')->firstOrFail();
 
@@ -110,7 +91,7 @@ class LoanDisbursementTest extends TestCase
 
     public function test_agent_records_repayment_and_client_cannot(): void
     {
-        $loan = $this->disburseStandardClientLoan();
+        $loan = $this->approveStandardClientLoan();
         $installment = $loan->repayments()->orderBy('due_date')->firstOrFail();
         $client = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
         $agent = User::where('email', 'agent@creditfast.com')->firstOrFail();
@@ -138,7 +119,11 @@ class LoanDisbursementTest extends TestCase
         $client = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
         $committee = User::where('email', 'comite@creditfast.com')->firstOrFail();
         $creditRequest = CreditRequest::where('client_id', $client->client->id)->firstOrFail();
-        $creditRequest->update(['status' => CreditRequestStatus::Committee]);
+        $creditRequest->update([
+            'status' => CreditRequestStatus::PendingCommittee,
+            'agency_code' => 'BKO',
+            'zone_code' => 'BKO-CENTRE',
+        ]);
 
         Sanctum::actingAs($committee);
         $this->postJson("/api/committee/requests/{$creditRequest->id}/decide", [
@@ -149,18 +134,5 @@ class LoanDisbursementTest extends TestCase
         ])->assertOk();
 
         return $creditRequest->fresh(['loan.repayments', 'loan.creditRequest'])->loan;
-    }
-
-    protected function disburseStandardClientLoan(): Loan
-    {
-        $loan = $this->approveStandardClientLoan();
-        $agent = User::where('email', 'agent@creditfast.com')->firstOrFail();
-
-        Sanctum::actingAs($agent);
-        $this->postJson("/api/loans/{$loan->id}/disburse", [
-            'disbursed_at' => now()->toDateString(),
-        ])->assertOk();
-
-        return $loan->fresh(['repayments']);
     }
 }

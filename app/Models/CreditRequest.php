@@ -33,6 +33,15 @@ class CreditRequest extends Model
         'repayment_capacity_status',
         'status',
         'submitted_at',
+        'agency_code',
+        'zone_code',
+        'assigned_agent_id',
+        'ongoing_credit_count',
+        'complement_subject',
+        'complement_detail',
+        'adjourn_reason',
+        'adjourn_what',
+        'assignment_reason',
     ];
 
     protected function casts(): array
@@ -55,6 +64,11 @@ class CreditRequest extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function assignedAgent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_agent_id');
     }
 
     public function activity(): BelongsTo
@@ -140,10 +154,8 @@ class CreditRequest extends Model
     protected function inAnalystQueue(Builder $query): Builder
     {
         return $query->whereIn('status', [
-            CreditRequestStatus::Submitted,
-            CreditRequestStatus::Analysis,
-            CreditRequestStatus::VerificationRequired,
-            CreditRequestStatus::CreditReview,
+            CreditRequestStatus::InAnalysis,
+            CreditRequestStatus::PendingAnalysis,
         ]);
     }
 
@@ -154,6 +166,9 @@ class CreditRequest extends Model
     #[Scope]
     protected function inCommitteeQueue(Builder $query): Builder
     {
-        return $query->where('status', CreditRequestStatus::Committee);
+        return $query->whereIn('status', [
+            CreditRequestStatus::PendingCommittee,
+            CreditRequestStatus::Committee,
+        ]);
     }
 }

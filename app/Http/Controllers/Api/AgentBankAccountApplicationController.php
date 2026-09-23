@@ -176,6 +176,36 @@ class AgentBankAccountApplicationController extends Controller
         return $this->approve($request, $bankAccountApplication);
     }
 
+    public function verifyIdentityPhysical(Request $request, BankAccountApplication $bankAccountApplication): JsonResponse
+    {
+        $this->assertType($bankAccountApplication, ClientType::PhysicalPerson);
+
+        return $this->verifyIdentity($request, $bankAccountApplication);
+    }
+
+    public function verifyIdentityLegal(Request $request, BankAccountApplication $bankAccountApplication): JsonResponse
+    {
+        $this->assertType($bankAccountApplication, ClientType::LegalEntity);
+
+        return $this->verifyIdentity($request, $bankAccountApplication);
+    }
+
+    protected function verifyIdentity(Request $request, BankAccountApplication $bankAccountApplication): JsonResponse
+    {
+        $this->authorize('review', $bankAccountApplication);
+
+        try {
+            $application = $this->applications->verifyIdentity($bankAccountApplication, $request->user());
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Identité vérifiée.',
+            'application' => new BankAccountApplicationResource($application),
+        ]);
+    }
+
     protected function indexByType(Request $request, ClientType $type): JsonResponse
     {
         $this->authorize('viewAny', BankAccountApplication::class);

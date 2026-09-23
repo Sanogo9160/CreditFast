@@ -14,6 +14,7 @@ use App\Models\Anomaly;
 use App\Models\CreditRequest;
 use App\Models\CreditReview;
 use App\Models\HumanValidation;
+use App\Services\CreditScoringEngine;
 use App\Services\CreditWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ use OpenApi\Attributes as OA;
 
 class AnalystController extends Controller
 {
-    public function __construct(protected CreditWorkflowService $workflowService) {}
+    public function __construct(
+        protected CreditWorkflowService $workflowService,
+        protected CreditScoringEngine $scoringEngine,
+    ) {}
 
     #[OA\Get(
         path: '/api/analyst/requests',
@@ -82,6 +86,7 @@ class AnalystController extends Controller
     public function review(ReviewCreditRequest $request, CreditRequest $creditRequest): JsonResponse
     {
         $user = $request->user();
+        $this->workflowService->assertActorOwnsStep($user, $creditRequest);
         $validated = $request->validated();
 
         $review = CreditReview::create([
@@ -96,11 +101,16 @@ class AnalystController extends Controller
         $nextStep = $validated['next_step'] ?? 'COMMITTEE';
 
         if ($nextStep === 'VERIFICATION_REQUIRED') {
+            $creditRequest->forceFill([
+                'complement_subject' => $validated['subject'] ?? null,
+                'complement_detail' => $validated['detail'] ?? $validated['comment'],
+            ])->save();
+
             $this->workflowService->transitionStatus(
                 $creditRequest,
                 CreditRequestStatus::VerificationRequired,
                 $user,
-                "Compléments demandés par l’analyste : {$validated['recommendation']}"
+                $validated['detail'] ?? "Compléments demandés par l’analyste : {$validated['recommendation']}"
             );
 
             return response()->json([
@@ -112,30 +122,24 @@ class AnalystController extends Controller
             ]);
         }
 
-        if (in_array($creditRequest->status, [
-            CreditRequestStatus::Submitted,
-            CreditRequestStatus::Analysis,
-            CreditRequestStatus::VerificationRequired,
-        ], true)) {
-            $this->workflowService->transitionStatus(
-                $creditRequest,
-                CreditRequestStatus::CreditReview,
-                $user,
-                'Revue analyste en cours'
-            );
-        }
-
         $this->workflowService->transitionStatus(
             $creditRequest,
-            CreditRequestStatus::Committee,
+            CreditRequestStatus::PendingCommittee,
             $user,
             "Recommandation analyste : {$validated['recommendation']}"
         );
 
+        $analysis = $this->scoringEngine->evaluateCreditRequest($creditRequest->fresh());
+
+        if (filled($validated['comment']) && $analysis->analysis_summary) {
+            $analysis->analysis_summary = trim($analysis->analysis_summary."\n\nAvis analyste : {$validated['comment']}");
+            $analysis->save();
+        }
+
         return response()->json([
             'message' => 'Votre revue a bien été enregistrée. Le dossier est transmis au comité pour décision.',
             'review' => $review,
-            'credit_request' => new CreditRequestResource($creditRequest->fresh(['creditReviews', 'statusHistory'])),
+            'credit_request' => new CreditRequestResource($creditRequest->fresh(['creditReviews', 'statusHistory', 'latestAnalysis'])),
         ]);
     }
 

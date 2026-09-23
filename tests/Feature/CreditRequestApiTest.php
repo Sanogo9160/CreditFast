@@ -182,13 +182,24 @@ class CreditRequestApiTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_analyst_can_trigger_scoring_evaluation(): void
+    public function test_analyst_cannot_trigger_scoring_evaluation(): void
     {
         $client = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
         $analyst = User::where('email', 'analyste@creditfast.com')->firstOrFail();
         $creditRequest = CreditRequest::where('client_id', $client->client->id)->firstOrFail();
 
         Sanctum::actingAs($analyst);
+        $this->postJson("/api/credit-requests/{$creditRequest->id}/score")
+            ->assertForbidden();
+    }
+
+    public function test_committee_can_trigger_scoring_evaluation(): void
+    {
+        $client = User::where('email', 'client.standard@creditfast.com')->firstOrFail();
+        $committee = User::where('email', 'comite@creditfast.com')->firstOrFail();
+        $creditRequest = CreditRequest::where('client_id', $client->client->id)->firstOrFail();
+
+        Sanctum::actingAs($committee);
         $response = $this->postJson("/api/credit-requests/{$creditRequest->id}/score");
 
         $response->assertStatus(200)

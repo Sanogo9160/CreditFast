@@ -68,7 +68,7 @@ class FieldVisitApiTest extends TestCase
     {
         $agent = User::query()->where('email', config('credit.staff.agent_email'))->firstOrFail();
         $creditRequest = CreditRequest::query()->firstOrFail();
-        $creditRequest->update(['status' => CreditRequestStatus::Analysis]);
+        $creditRequest->update(['status' => CreditRequestStatus::InAnalysis]);
 
         Sanctum::actingAs($agent);
 

@@ -20,6 +20,10 @@ class CreditCommitteeDecision extends Model
         'annual_interest_rate_percent',
         'comment',
         'decided_at',
+        'reason',
+        'what',
+        'subject',
+        'complement_detail',
     ];
 
     protected function casts(): array

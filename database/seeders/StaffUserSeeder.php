@@ -19,28 +19,28 @@ class StaffUserSeeder extends Seeder
                 'role' => RoleName::Admin,
                 'first_name' => 'Admin',
                 'last_name' => 'Crédit Fast',
-                'phone' => '+22370000001',
+                'phone' => '+22371910001',
             ],
             [
                 'email' => (string) config('credit.staff.agent_email'),
                 'role' => RoleName::CreditAgent,
                 'first_name' => 'Chargé',
                 'last_name' => 'Crédit',
-                'phone' => '+22370000002',
+                'phone' => '+22371910002',
             ],
             [
                 'email' => (string) config('credit.staff.analyst_email'),
                 'role' => RoleName::Analyst,
                 'first_name' => 'Analyste',
                 'last_name' => 'Risques',
-                'phone' => '+22370000003',
+                'phone' => '+22371910003',
             ],
             [
                 'email' => (string) config('credit.staff.committee_email'),
                 'role' => RoleName::CommitteeMember,
                 'first_name' => 'Membre',
                 'last_name' => 'Comité',
-                'phone' => '+22370000004',
+                'phone' => '+22371910004',
             ],
         ];
 

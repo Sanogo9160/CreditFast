@@ -2,22 +2,31 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\BankAccountApplicationStatus;
+use App\Enums\ClientType;
 use App\Enums\CreditRequestStatus;
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BankAccount\StoreLegalEntityBankAccountApplicationRequest;
+use App\Http\Requests\BankAccount\StorePhysicalPersonBankAccountApplicationRequest;
 use App\Http\Requests\Profile\StoreActivityRequest;
 use App\Http\Requests\Profile\StoreFinancialProfileRequest;
 use App\Http\Requests\Profile\StoreKycDocumentRequest;
 use App\Http\Requests\Profile\UpdateActivityRequest;
 use App\Http\Requests\Profile\UpdateClientProfileRequest;
+use App\Http\Resources\BankAccountApplicationResource;
 use App\Http\Resources\ClientResource;
 use App\Models\Activity;
+use App\Models\FinancialAccount;
 use App\Models\FinancialProfile;
 use App\Models\KycDocument;
+use App\Services\AccountCheckService;
+use App\Services\BankAccountApplicationService;
 use App\Services\FinancialCalculationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
 
 class ClientProfileController extends Controller
@@ -49,6 +58,112 @@ class ClientProfileController extends Controller
         return response()->json([
             'client' => new ClientResource($client),
         ]);
+    }
+
+    public function accountCheck(Request $request, AccountCheckService $accountCheck): JsonResponse
+    {
+        $client = $request->user()->client()->firstOrFail();
+
+        return response()->json($accountCheck->forClient($client));
+    }
+
+    public function accountTransactions(Request $request, FinancialAccount $financialAccount): JsonResponse
+    {
+        $client = $request->user()->client()->firstOrFail();
+        abort_unless((int) $financialAccount->client_id === (int) $client->id, 403);
+
+        $transactions = $financialAccount->transactions()
+            ->orderByDesc('booked_at')
+            ->orderByDesc('id')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $transactions->getCollection()->map(fn ($tx) => [
+                'id' => $tx->id,
+                'reference' => $tx->reference,
+                'booked_at' => ($tx->booked_at ?? $tx->transaction_date)?->toIso8601String(),
+                'label' => $tx->label ?? $tx->description,
+                'type' => $tx->type ?? $tx->transaction_type,
+                'direction' => $tx->direction,
+                'amount' => abs((float) $tx->amount),
+                'status' => $tx->status,
+                'channel' => $tx->channel,
+                'balance_after' => $tx->balance_after !== null ? (float) $tx->balance_after : null,
+            ]),
+            'meta' => [
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage(),
+                'total' => $transactions->total(),
+            ],
+        ]);
+    }
+
+    public function savingsOnboarding(Request $request): JsonResponse
+    {
+        $client = $request->user()->client()->firstOrFail();
+        $activeSavings = $client->financialAccounts()
+            ->whereIn('account_type', ['EPARGNE', 'SAVINGS'])
+            ->whereIn('status', ['ACTIF', 'ACTIVE'])
+            ->exists();
+
+        $pending = $client->bankAccountApplications()
+            ->whereNotIn('status', [
+                BankAccountApplicationStatus::Approved->value,
+                BankAccountApplicationStatus::Rejected->value,
+            ])
+            ->latest()
+            ->first();
+
+        return response()->json([
+            'has_active_savings_account' => $activeSavings,
+            'pending_application' => $pending ? new BankAccountApplicationResource($pending) : null,
+            'can_create_pre_application' => ! $activeSavings && $pending === null,
+        ]);
+    }
+
+    public function storeSavingsPreApplication(
+        Request $request,
+        BankAccountApplicationService $applications
+    ): JsonResponse {
+        $client = $request->user()->client()->firstOrFail();
+
+        $hasActive = $client->financialAccounts()
+            ->whereIn('account_type', ['EPARGNE', 'SAVINGS'])
+            ->whereIn('status', ['ACTIF', 'ACTIVE'])
+            ->exists();
+
+        if ($hasActive) {
+            throw ValidationException::withMessages([
+                'application' => 'Vous avez déjà un compte épargne actif.',
+            ]);
+        }
+
+        $pending = $client->bankAccountApplications()
+            ->whereNotIn('status', [
+                BankAccountApplicationStatus::Approved->value,
+                BankAccountApplicationStatus::Rejected->value,
+            ])
+            ->exists();
+
+        if ($pending) {
+            throw ValidationException::withMessages([
+                'application' => 'Une demande d’épargne est déjà en cours. Elle ne peut pas être dupliquée.',
+            ]);
+        }
+
+        $formRequest = $client->client_type === ClientType::LegalEntity
+            ? StoreLegalEntityBankAccountApplicationRequest::createFrom($request)
+            : StorePhysicalPersonBankAccountApplicationRequest::createFrom($request);
+
+        $formRequest->setContainer(app())->setRedirector(app('redirect'));
+        $formRequest->validateResolved();
+
+        $application = $applications->createDraft($client, $formRequest->validated());
+
+        return response()->json([
+            'message' => 'Votre pré-demande d’épargne a été enregistrée. Elle ne crée pas encore de compte.',
+            'application' => new BankAccountApplicationResource($application),
+        ], 201);
     }
 
     #[OA\Put(

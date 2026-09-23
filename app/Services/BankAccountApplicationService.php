@@ -144,6 +144,23 @@ class BankAccountApplicationService
         return $application->fresh(['parties', 'documents', 'caisse', 'guichet', 'reviewer']);
     }
 
+    public function verifyIdentity(BankAccountApplication $application, User $actor): BankAccountApplication
+    {
+        if ($application->status !== BankAccountApplicationStatus::Submitted) {
+            throw new InvalidArgumentException('Seules les demandes soumises peuvent avoir une vérification d’identité.');
+        }
+
+        $application->forceFill([
+            'identity_verified' => true,
+            'identity_verified_by' => $actor->id,
+            'identity_verified_at' => now(),
+        ])->save();
+
+        $this->auditLogger->record($actor, 'BANK_ACCOUNT_APPLICATION_IDENTITY_VERIFIED', BankAccountApplication::class, $application->id);
+
+        return $application->fresh(['parties', 'documents', 'caisse', 'guichet', 'reviewer']);
+    }
+
     public function reject(BankAccountApplication $application, User $actor, string $comment): BankAccountApplication
     {
         if ($application->status !== BankAccountApplicationStatus::Submitted) {
@@ -195,6 +212,9 @@ class BankAccountApplicationService
                 'account_number' => $accountNumber,
                 'account_type' => $options['account_type'] ?? 'SAVINGS',
                 'balance' => 0,
+                'available_balance' => 0,
+                'blocked_balance' => 0,
+                'agency_code' => $application->caisse?->code,
                 'opened_at' => now()->toDateString(),
                 'status' => 'ACTIVE',
                 'caisse_id' => $application->caisse_id,

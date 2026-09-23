@@ -18,7 +18,10 @@ class UpdateCreditRequest extends FormRequest
         $creditRequest = $this->route('creditRequest');
 
         return ($this->user()?->can('update', $creditRequest) ?? false)
-            && $creditRequest->status === CreditRequestStatus::Draft;
+            && in_array($creditRequest->status, [
+                CreditRequestStatus::Draft,
+                CreditRequestStatus::VerificationRequired,
+            ], true);
     }
 
     protected function prepareForValidation(): void
@@ -40,8 +43,6 @@ class UpdateCreditRequest extends FormRequest
             'requested_amount' => ['sometimes', 'numeric', 'min:10000'],
             'duration_months' => ['sometimes', 'integer', 'min:1', 'max:60'],
             'purpose' => ['sometimes', 'string', 'max:255'],
-            'declared_monthly_income' => ['sometimes', 'numeric', 'min:0'],
-            'declared_monthly_expenses' => ['sometimes', 'numeric', 'min:0'],
             'activity_id' => ['nullable', 'exists:activities,id'],
         ];
     }

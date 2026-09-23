@@ -70,7 +70,7 @@ class OpenApiDocumentationTest extends TestCase
 
         $schemas = $docs['components']['schemas'];
         $this->assertSame(
-            ['DRAFT', 'SUBMITTED', 'ANALYSIS', 'VERIFICATION_REQUIRED', 'CREDIT_REVIEW', 'COMMITTEE', 'APPROVED', 'REJECTED', 'DISBURSED'],
+            ['DRAFT', 'SUBMITTED', 'RECEIVED', 'UNDER_REVIEW', 'VERIFICATION_REQUIRED', 'IN_ANALYSIS', 'PENDING_ANALYSIS', 'PENDING_COMMITTEE', 'COMMITTEE', 'APPROVED', 'AMENDED', 'REJECTED', 'ADJOURNED'],
             $schemas['CreditRequestStatus']['enum']
         );
         $this->assertSame(['PENDING', 'VERIFIED', 'REJECTED'], $schemas['KycStatus']['enum']);

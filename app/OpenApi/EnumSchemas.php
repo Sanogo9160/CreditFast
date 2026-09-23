@@ -53,15 +53,19 @@ MD,
 
 - `DRAFT` — brouillon, encore chez le client, pas transmis au chargé
 - `SUBMITTED` — transmis à l’équipe
-- `ANALYSIS` — en cours d’examen
+- `RECEIVED` — reçu par le chargé
+- `UNDER_REVIEW` — en revue initiale côté chargé
 - `VERIFICATION_REQUIRED` — renvoyé au client pour pièces ou informations
-- `CREDIT_REVIEW` — examen approfondi
+- `IN_ANALYSIS` — en cours d’examen
+- `PENDING_ANALYSIS` — en attente d’analyse
+- `PENDING_COMMITTEE` — en attente du comité
 - `COMMITTEE` — présenté au comité
-- `APPROVED` — crédit accordé, en attente de décaissement
+- `APPROVED` — crédit accordé (décaissement à l’approbation comité)
+- `AMENDED` — amendé
 - `REJECTED` — refusé (état final)
-- `DISBURSED` — fonds mis à disposition (état final)
+- `ADJOURNED` — ajourné
 MD,
-    enum: ['DRAFT', 'SUBMITTED', 'ANALYSIS', 'VERIFICATION_REQUIRED', 'CREDIT_REVIEW', 'COMMITTEE', 'APPROVED', 'REJECTED', 'DISBURSED'],
+    enum: ['DRAFT', 'SUBMITTED', 'RECEIVED', 'UNDER_REVIEW', 'VERIFICATION_REQUIRED', 'IN_ANALYSIS', 'PENDING_ANALYSIS', 'PENDING_COMMITTEE', 'COMMITTEE', 'APPROVED', 'AMENDED', 'REJECTED', 'ADJOURNED'],
     example: 'DRAFT'
 )]
 #[OA\Schema(

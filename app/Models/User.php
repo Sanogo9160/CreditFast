@@ -24,6 +24,9 @@ class User extends Authenticatable
         'password',
         'status',
         'profile_photo_path',
+        'agency_code',
+        'zone_codes',
+        'available',
     ];
 
     protected $hidden = [
@@ -37,6 +40,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'zone_codes' => 'array',
+            'available' => 'boolean',
         ];
     }
 

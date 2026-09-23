@@ -20,6 +20,9 @@ class FinancialAccount extends Model
         'account_number',
         'account_type',
         'balance',
+        'available_balance',
+        'blocked_balance',
+        'agency_code',
         'opened_at',
         'status',
     ];
@@ -28,6 +31,8 @@ class FinancialAccount extends Model
     {
         return [
             'balance' => 'decimal:2',
+            'available_balance' => 'decimal:2',
+            'blocked_balance' => 'decimal:2',
             'opened_at' => 'date',
         ];
     }

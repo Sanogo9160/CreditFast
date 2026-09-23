@@ -43,7 +43,12 @@ class CreditRequestPolicy
 
     public function score(User $user, CreditRequest $creditRequest): bool
     {
-        return $user->hasAnyRole(RoleName::Admin, RoleName::Analyst, RoleName::CreditAgent);
+        return $user->hasAnyRole(RoleName::Admin, RoleName::CommitteeMember);
+    }
+
+    public function viewAnalysis(User $user, CreditRequest $creditRequest): bool
+    {
+        return $user->hasAnyRole(RoleName::Admin, RoleName::CommitteeMember);
     }
 
     public function review(User $user, CreditRequest $creditRequest): bool

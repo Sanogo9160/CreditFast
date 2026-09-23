@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Agent;
 
+use App\Enums\ComplementSubject;
 use App\Models\CreditRequest;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class RequestComplementsRequest extends FormRequest
 {
@@ -11,8 +13,7 @@ class RequestComplementsRequest extends FormRequest
      * Demande de pièces ou d’informations manquantes.
      *
      * Réservée au chargé de crédit et à l’administrateur. Cette action
-     * renvoie officiellement le dossier au client (statut VERIFICATION_REQUIRED)
-     * pour qu’il puisse, par exemple, transmettre un justificatif de domicile.
+     * renvoie officiellement le dossier au client (statut VERIFICATION_REQUIRED).
      */
     public function authorize(): bool
     {
@@ -28,7 +29,9 @@ class RequestComplementsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'comment' => ['required', 'string', 'min:5'],
+            'subject' => ['required', new Enum(ComplementSubject::class)],
+            'detail' => ['required', 'string', 'min:5'],
+            'comment' => ['nullable', 'string', 'min:5'],
         ];
     }
 
@@ -38,6 +41,8 @@ class RequestComplementsRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'subject' => 'sujet',
+            'detail' => 'détail',
             'comment' => 'message au client',
         ];
     }
@@ -48,7 +53,7 @@ class RequestComplementsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'comment.min' => 'Merci de préciser au client les pièces ou informations à transmettre (au moins quelques mots).',
+            'detail.min' => 'Merci de préciser au client les pièces ou informations à transmettre (au moins 5 caractères).',
         ];
     }
 }

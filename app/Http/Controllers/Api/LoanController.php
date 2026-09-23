@@ -154,12 +154,19 @@ class LoanController extends Controller
             ? Carbon::parse($validated['disbursed_at'])
             : null;
 
-        $updated = $this->loanService->disburse(
-            $loan,
-            $request->user(),
-            $disbursedAt,
-            $validated['comment'] ?? null
-        );
+        try {
+            $updated = $this->loanService->disburse(
+                $loan,
+                $request->user(),
+                $disbursedAt,
+                $validated['comment'] ?? null
+            );
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'errors' => ['loan' => [$exception->getMessage()]],
+            ], 422);
+        }
 
         return response()->json([
             'message' => 'Le crédit a bien été décaissé. L’échéancier a été établi à partir de la date de valeur.',

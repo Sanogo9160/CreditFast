@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\CreditRequestStatus;
 use App\Enums\GuaranteeVerificationStatus;
 use App\Enums\KycStatus;
+use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Agent\RequestComplementsRequest;
 use App\Http\Requests\Institutional\StoreAccountTransactionRequest;
@@ -48,17 +49,22 @@ class CreditAgentController extends Controller
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
         ]
     )]
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', CreditRequest::class);
 
+        $user = $request->user();
+
         $requests = CreditRequest::query()
-            ->with(['client.user', 'activity', 'guarantees', 'anomalies', 'documents', 'latestAnalysis'])
-            ->whereIn('status', [
-                CreditRequestStatus::Submitted,
-                CreditRequestStatus::VerificationRequired,
-                CreditRequestStatus::Analysis,
-            ])
+            ->with(['client.user', 'activity', 'guarantees', 'anomalies', 'documents', 'latestAnalysis', 'assignedAgent'])
+            ->whereIn('status', array_map(
+                fn ($status) => $status->value,
+                CreditRequestStatus::agentOwned()
+            ))
+            ->when(
+                $user && ! $user->hasRole(RoleName::Admin),
+                fn ($q) => $q->where('assigned_agent_id', $user->id)
+            )
             ->latest()
             ->orderByDesc('id')
             ->paginate(15);
@@ -96,11 +102,21 @@ class CreditAgentController extends Controller
     )]
     public function requestComplements(RequestComplementsRequest $request, CreditRequest $creditRequest): JsonResponse
     {
+        $this->workflowService->assertActorOwnsStep($request->user(), $creditRequest);
+
+        $validated = $request->validated();
+        $detail = $validated['detail'] ?? $validated['comment'];
+
+        $creditRequest->forceFill([
+            'complement_subject' => $validated['subject'],
+            'complement_detail' => $detail,
+        ])->save();
+
         $updated = $this->workflowService->transitionStatus(
             $creditRequest,
             CreditRequestStatus::VerificationRequired,
             $request->user(),
-            $request->validated('comment')
+            $detail
         );
 
         return response()->json([
@@ -129,10 +145,15 @@ class CreditAgentController extends Controller
     public function sendToAnalysis(Request $request, CreditRequest $creditRequest): JsonResponse
     {
         $this->authorize('sendToAnalysis', $creditRequest);
+        $this->workflowService->assertActorOwnsStep($request->user(), $creditRequest);
+
+        if ($creditRequest->status === CreditRequestStatus::VerificationRequired) {
+            abort(403, 'Ce dossier est verrouillé. Le client doit d’abord répondre au complément demandé.');
+        }
 
         $updated = $this->workflowService->transitionStatus(
             $creditRequest,
-            CreditRequestStatus::Analysis,
+            CreditRequestStatus::InAnalysis,
             $request->user(),
             'Premières vérifications effectuées — dossier transmis à l’analyse'
         );

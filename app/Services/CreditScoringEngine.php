@@ -15,6 +15,7 @@ use App\Models\CreditRequest;
 use App\Models\CreditScoreFactor;
 use App\Models\ScoringModel;
 use App\Models\ScoringRule;
+use App\Support\InstitutionalAccountRequirement;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -79,9 +80,7 @@ class CreditScoringEngine
         ]);
 
         if ($creditRequest->client->financialAccounts->isEmpty()) {
-            throw new RuntimeException(
-                'Scoring impossible : le client doit disposer d’un compte en banque ou en institution.'
-            );
+            throw new RuntimeException(InstitutionalAccountRequirement::scoringBlockedMessage());
         }
 
         $this->anomalyService->detectAnomalies($creditRequest);
@@ -144,7 +143,7 @@ class CreditScoringEngine
             if ($creditRequest->status === CreditRequestStatus::Submitted) {
                 $this->workflowService->transitionStatus(
                     $creditRequest,
-                    CreditRequestStatus::Analysis,
+                    CreditRequestStatus::InAnalysis,
                     $creditRequest->client?->user,
                     'Passage en analyse automatique après scoring'
                 );

@@ -24,6 +24,9 @@ class BankAccountApplication extends Model
         'guichet_id',
         'cash_desk_id',
         'status',
+        'identity_verified',
+        'identity_verified_by',
+        'identity_verified_at',
         'review_comment',
         'reviewed_by',
         'reviewed_at',
@@ -90,6 +93,8 @@ class BankAccountApplication extends Model
     {
         return [
             'status' => BankAccountApplicationStatus::class,
+            'identity_verified' => 'boolean',
+            'identity_verified_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'date_of_birth' => 'date',
             'id_issued_at' => 'date',

@@ -8,7 +8,10 @@ use Carbon\CarbonInterface;
 
 class FinancialCalculationService
 {
-    public function __construct(protected InterestRateService $interestRates) {}
+    public function __construct(
+        protected InterestRateService $interestRates,
+        protected SimpleInterestService $simpleInterest,
+    ) {}
 
     /**
      * Calculate disposable income (Reste à vivre).
@@ -27,30 +30,14 @@ class FinancialCalculationService
     }
 
     /**
-     * Calculate estimated monthly payment (Mensualité estimée).
-     * Uses constant payment formula (amortization schedule) or simple linear interest.
+     * Mensualité estimée — intérêt simple institutionnel (15 % / an).
      */
     public function calculateEstimatedMonthlyPayment(
         float $requestedAmount,
         int $durationMonths,
         ?float $annualInterestRatePercent = null
     ): float {
-        $annualInterestRatePercent ??= $this->defaultAnnualInterestRate();
-        if ($durationMonths <= 0) {
-            return $requestedAmount;
-        }
-
-        $monthlyInterestRate = ($annualInterestRatePercent / 100) / 12;
-
-        if ($monthlyInterestRate <= 0) {
-            return round($requestedAmount / $durationMonths, 2);
-        }
-
-        // Formula: P * r * (1 + r)^n / ((1 + r)^n - 1)
-        $factor = pow(1 + $monthlyInterestRate, $durationMonths);
-        $monthlyPayment = $requestedAmount * ($monthlyInterestRate * $factor) / ($factor - 1);
-
-        return round($monthlyPayment, 2);
+        return $this->simpleInterest->quote($requestedAmount, $durationMonths, $annualInterestRatePercent)['monthly_payment'];
     }
 
     /**
@@ -107,15 +94,15 @@ class FinancialCalculationService
         ?float $annualInterestRatePercent = null,
         ?CarbonInterface $fromDate = null
     ): array {
-        $monthlyPayment = $this->calculateEstimatedMonthlyPayment($requestedAmount, $durationMonths, $annualInterestRatePercent);
+        $quote = $this->simpleInterest->quote($requestedAmount, $durationMonths, $annualInterestRatePercent);
         $start = $fromDate ? Carbon::parse($fromDate->toDateString()) : now()->startOfDay();
         $rows = [];
 
-        for ($month = 1; $month <= $durationMonths; $month++) {
+        foreach ($quote['schedule'] as $row) {
             $rows[] = [
-                'installment' => $month,
-                'due_date' => $start->copy()->addMonths($month)->toDateString(),
-                'expected_amount' => $monthlyPayment,
+                'installment' => $row['installment'],
+                'due_date' => $start->copy()->addMonths($row['installment'])->toDateString(),
+                'expected_amount' => $row['expected_amount'],
             ];
         }
 

@@ -85,7 +85,7 @@ class CreditScoringEngineTest extends TestCase
         $creditRequest = CreditRequest::where('client_id', $client->id)->firstOrFail();
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('compte en banque ou en institution');
+        $this->expectExceptionMessage('compte institutionnel');
 
         app(CreditScoringEngine::class)->evaluateCreditRequest($creditRequest->fresh());
     }

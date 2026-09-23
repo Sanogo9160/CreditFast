@@ -20,7 +20,7 @@ class AdminUserSeeder extends Seeder
             [
                 'first_name' => 'Admin',
                 'last_name' => 'Crédit Fast',
-                'phone' => '+22370000001',
+                'phone' => '+22371910000',
                 'password' => $password,
                 'role_id' => $role->id,
                 'status' => 'active',

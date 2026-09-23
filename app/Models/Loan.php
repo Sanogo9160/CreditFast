@@ -17,6 +17,7 @@ class Loan extends Model
     protected $fillable = [
         'client_id',
         'credit_request_id',
+        'savings_account_id',
         'principal_amount',
         'interest_amount',
         'total_amount',
@@ -27,6 +28,7 @@ class Loan extends Model
         'maturity_date',
         'outstanding_amount',
         'status',
+        'funds_received',
     ];
 
     protected function casts(): array
@@ -41,6 +43,7 @@ class Loan extends Model
             'disbursed_at' => 'date',
             'maturity_date' => 'date',
             'outstanding_amount' => 'decimal:2',
+            'funds_received' => 'decimal:2',
             'status' => LoanStatus::class,
         ];
     }
@@ -53,6 +56,11 @@ class Loan extends Model
     public function creditRequest(): BelongsTo
     {
         return $this->belongsTo(CreditRequest::class);
+    }
+
+    public function savingsAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinancialAccount::class, 'savings_account_id');
     }
 
     public function repayments(): HasMany

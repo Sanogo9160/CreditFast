@@ -32,13 +32,26 @@ php artisan serve
 # ou via Laragon : https://creditfast.test
 ```
 
-Après seed (hors tests) : **un seul compte** admin.
+Après seed local (non-prod) : admin + staff + clients démo + **jeu hackathon IMF** (PP/PM avec et sans compte).
 
-| Champ | Valeur |
-|---|---|
-| Email | `STAFF_ADMIN_EMAIL` (défaut `admin@creditfast.ml`) |
-| Mot de passe | `STAFF_BOOTSTRAP_PASSWORD` (défaut dans `.env.example`) |
-| Login | `POST /api/auth/staff/login` |
+| Rôle / persona | Login | Mot de passe | Compte IMF ? |
+|---|---|---|---|
+| Admin | `STAFF_ADMIN_EMAIL` | `STAFF_BOOTSTRAP_PASSWORD` | — |
+| Agent | `config('credit.staff.agent_email')` | idem | — |
+| Awa Diarra (PP) | `+22370111101` | `password` | Oui `BKO-G01-2025900001` |
+| SARL Textile (PM) | `+22370222201` | `password` | Oui `BKO-G01-2025900010` |
+| GIE Maraîchers (PM) | `+22370333301` | `password` | Oui `SKO-G01-2025900001` |
+| Binta Coulibaly (PP) | `+22370444401` | `password` | **Non** → adhésion |
+| SA Céréales Nord (PM) | `+22370555501` | `password` | **Non** → adhésion |
+
+Login client : `POST /api/auth/client/login` (téléphone + mot de passe).  
+Login staff : `POST /api/auth/staff/login`.
+
+Sans compte institutionnel, `POST /api/credit-requests` renvoie `422` et oriente vers :
+- PP : `POST /api/bank-account-applications/physical-person`
+- PM : `POST /api/bank-account-applications/legal-entity`
+
+Test automatisé du parcours : `php artisan test --compact tests/Feature/HackathonCreditWorkflowTest.php`
 
 Réinitialisation complète locale :
 

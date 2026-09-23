@@ -69,7 +69,7 @@ class ScoringController extends Controller
     )]
     public function getAnalysis(CreditRequest $creditRequest): JsonResponse
     {
-        $this->authorize('view', $creditRequest);
+        $this->authorize('viewAnalysis', $creditRequest);
 
         $analysis = $creditRequest->latestAnalysis?->load('factors', 'scoringModel');
 
