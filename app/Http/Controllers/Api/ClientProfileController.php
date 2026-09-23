@@ -60,6 +60,27 @@ class ClientProfileController extends Controller
         ]);
     }
 
+    #[OA\Get(
+        path: '/api/profile/account-check',
+        operationId: 'clientProfileAccountCheck',
+        tags: ['Profil client'],
+        summary: '[Lire] Contrôle du compte (revenus, dépenses, crédits en cours)',
+        description: '**Rôles :** Client. Appelé à l’ouverture de la demande de prêt. Les montants viennent du profil financier, pas du formulaire.',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Contrôle',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'monthly_income', type: 'number', example: 450000),
+                    new OA\Property(property: 'monthly_expenses', type: 'number', example: 150000),
+                    new OA\Property(property: 'ongoing_credit_count', type: 'integer', example: 0),
+                ])
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ]
+    )]
     public function accountCheck(Request $request, AccountCheckService $accountCheck): JsonResponse
     {
         $client = $request->user()->client()->firstOrFail();
@@ -67,6 +88,20 @@ class ClientProfileController extends Controller
         return response()->json($accountCheck->forClient($client));
     }
 
+    #[OA\Get(
+        path: '/api/profile/financial-accounts/{financialAccount}/transactions',
+        operationId: 'clientProfileAccountTransactions',
+        tags: ['Profil client'],
+        summary: '[Lister] Historique du compte épargne',
+        description: '**Rôles :** Client propriétaire du compte uniquement.',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(ref: '#/components/parameters/FinancialAccountId')],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste paginée des opérations'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ]
+    )]
     public function accountTransactions(Request $request, FinancialAccount $financialAccount): JsonResponse
     {
         $client = $request->user()->client()->firstOrFail();
@@ -98,6 +133,19 @@ class ClientProfileController extends Controller
         ]);
     }
 
+    #[OA\Get(
+        path: '/api/profile/savings-onboarding',
+        operationId: 'clientProfileSavingsOnboarding',
+        tags: ['Profil client'],
+        summary: '[Lire] État de la pré-demande d’épargne',
+        description: '**Rôles :** Client. Indique si un compte épargne actif existe et si une pré-demande est en cours.',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'État d’adhésion épargne'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ]
+    )]
     public function savingsOnboarding(Request $request): JsonResponse
     {
         $client = $request->user()->client()->firstOrFail();
@@ -121,6 +169,20 @@ class ClientProfileController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/profile/savings-pre-applications',
+        operationId: 'clientProfileStoreSavingsPreApplication',
+        tags: ['Profil client'],
+        summary: '[Créer] Pré-demande d’épargne',
+        description: '**Rôles :** Client. Ne crée pas un compte. Une demande en cours ne se duplique pas. Corps = fiche PP ou PM selon le profil.',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 201, description: 'Pré-demande enregistrée'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ]
+    )]
     public function storeSavingsPreApplication(
         Request $request,
         BankAccountApplicationService $applications

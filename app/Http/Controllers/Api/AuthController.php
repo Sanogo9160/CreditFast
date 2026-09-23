@@ -179,11 +179,28 @@ class AuthController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/auth/password',
+        operationId: 'authUpdatePasswordPost',
+        tags: ['Session'],
+        summary: '[Modifier] Son mot de passe (POST)',
+        description: '**Rôles :** utilisateur authentifié. Alias POST du contrat frontend. L’ancien mot de passe est obligatoire.',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdatePasswordRequest')
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Mot de passe mis à jour', content: new OA\JsonContent(ref: '#/components/schemas/Message')),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ]
+    )]
     #[OA\Put(
         path: '/api/auth/password',
         operationId: 'authUpdatePassword',
         tags: ['Session'],
-        summary: '[Modifier] Son mot de passe',
+        summary: '[Modifier] Son mot de passe (PUT)',
         description: '**Rôles :** utilisateur authentifié (client ou interne). L’ancien mot de passe est obligatoire. Les autres sessions sont révoquées.',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(

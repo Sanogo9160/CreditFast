@@ -187,11 +187,30 @@ class AdminController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/admin/users/{user}/password',
+        operationId: 'adminUsersResetPasswordPost',
+        tags: ['Administration'],
+        summary: '[Modifier] Réinitialiser le mot de passe (POST)',
+        description: '**Rôles :** Admin. Alias POST du contrat frontend.',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(ref: '#/components/parameters/UserId')],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/ResetUserPasswordRequest')
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Mot de passe réinitialisé', content: new OA\JsonContent(ref: '#/components/schemas/Message')),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ]
+    )]
     #[OA\Put(
         path: '/api/admin/users/{user}/password',
         operationId: 'adminUsersResetPassword',
         tags: ['Administration'],
-        summary: '[Modifier] Réinitialiser le mot de passe d’un utilisateur',
+        summary: '[Modifier] Réinitialiser le mot de passe d’un utilisateur (PUT)',
         description: '**Rôles :** Admin (`admin`). Impossible sur son propre compte (utiliser `/api/auth/password`). Révoque toutes les sessions de la cible.',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(ref: '#/components/parameters/UserId')],

@@ -176,6 +176,18 @@ class AgentBankAccountApplicationController extends Controller
         return $this->approve($request, $bankAccountApplication);
     }
 
+    #[OA\Post(
+        path: '/api/agent/bank-account-applications/physical-person/{bankAccountApplication}/verify-identity',
+        operationId: 'agentPpBankAccountApplicationsVerifyIdentity',
+        tags: ['Adhésion compte PP'],
+        summary: '[Vérifier] Identité PP',
+        description: '**Rôles :** Chargé, Admin. Demande au statut SUBMITTED.',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Identité vérifiée'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ]
+    )]
     public function verifyIdentityPhysical(Request $request, BankAccountApplication $bankAccountApplication): JsonResponse
     {
         $this->assertType($bankAccountApplication, ClientType::PhysicalPerson);
@@ -183,6 +195,18 @@ class AgentBankAccountApplicationController extends Controller
         return $this->verifyIdentity($request, $bankAccountApplication);
     }
 
+    #[OA\Post(
+        path: '/api/agent/bank-account-applications/legal-entity/{bankAccountApplication}/verify-identity',
+        operationId: 'agentPmBankAccountApplicationsVerifyIdentity',
+        tags: ['Adhésion compte PM'],
+        summary: '[Vérifier] Identité PM',
+        description: '**Rôles :** Chargé, Admin. Demande au statut SUBMITTED.',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Identité vérifiée'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ]
+    )]
     public function verifyIdentityLegal(Request $request, BankAccountApplication $bankAccountApplication): JsonResponse
     {
         $this->assertType($bankAccountApplication, ClientType::LegalEntity);
