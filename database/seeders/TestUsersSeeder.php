@@ -326,20 +326,20 @@ class TestUsersSeeder extends Seeder
                 ]
             );
 
-            $client = Client::query()->updateOrCreate(
-                ['client_number' => $row['client_number']],
-                [
-                    'user_id' => $user->id,
-                    'client_type' => ClientType::PhysicalPerson,
-                    'date_of_birth' => '1990-01-15',
-                    'address' => $row['address'],
-                    'city' => $row['city'],
-                    'residential_zone' => $row['zone'],
-                    'occupation' => $row['occupation'],
-                    'kyc_status' => $row['has_cni'] ? KycStatus::Verified : KycStatus::Pending,
-                    'institution_verified_at' => $row['account_number'] ? now() : null,
-                ]
-            );
+            $client = $this->resolveDemoClient($user, $row['client_number']);
+
+            $client->fill([
+                'user_id' => $user->id,
+                'client_number' => $row['client_number'],
+                'client_type' => ClientType::PhysicalPerson,
+                'date_of_birth' => '1990-01-15',
+                'address' => $row['address'],
+                'city' => $row['city'],
+                'residential_zone' => $row['zone'],
+                'occupation' => $row['occupation'],
+                'kyc_status' => $row['has_cni'] ? KycStatus::Verified : KycStatus::Pending,
+                'institution_verified_at' => $row['account_number'] ? now() : null,
+            ])->save();
 
             FinancialProfile::query()->updateOrCreate(
                 ['client_id' => $client->id],
@@ -401,6 +401,38 @@ class TestUsersSeeder extends Seeder
                     ->delete();
             }
         }
+    }
+
+    /**
+     * Une seule fiche client par user : réutilise DEMO-* ou la fiche d’inscription, supprime les doublons.
+     */
+    protected function resolveDemoClient(User $user, string $clientNumber): Client
+    {
+        $keep = Client::query()
+            ->where('user_id', $user->id)
+            ->where('client_number', $clientNumber)
+            ->first()
+            ?? Client::query()->where('client_number', $clientNumber)->first()
+            ?? Client::query()->where('user_id', $user->id)->orderByDesc('id')->first()
+            ?? new Client;
+
+        Client::query()
+            ->where('user_id', $user->id)
+            ->when($keep->exists, fn ($query) => $query->whereKeyNot($keep->id))
+            ->each(function (Client $orphan): void {
+                $orphan->financialAccounts()->delete();
+                $orphan->activities()->delete();
+                $orphan->financialProfile()?->delete();
+                $orphan->kycDocuments()->delete();
+                $orphan->savingsHistories()->delete();
+                $orphan->delete();
+            });
+
+        if ($keep->exists && (int) $keep->user_id !== (int) $user->id) {
+            $keep->user_id = $user->id;
+        }
+
+        return $keep;
     }
 
     /**

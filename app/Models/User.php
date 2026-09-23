@@ -57,7 +57,9 @@ class User extends Authenticatable
 
     public function client(): HasOne
     {
-        return $this->hasOne(Client::class);
+        // Un user ne devrait avoir qu’une fiche client ; en cas de doublon
+        // (inscription puis seed atelier), prendre la plus récente (ex. DEMO-*).
+        return $this->hasOne(Client::class)->latestOfMany();
     }
 
     public function userNotifications(): HasMany

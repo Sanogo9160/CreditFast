@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Enums\ClientType;
 use App\Enums\CreditProductType;
 use App\Enums\CreditRequestStatus;
+use App\Enums\KycStatus;
+use App\Models\Client;
 use App\Models\User;
 use App\Support\InstitutionalAccountRequirement;
 use Database\Seeders\TestUsersSeeder;
@@ -95,5 +97,30 @@ class TestUsersCreditClientsTest extends TestCase
                 ->assertOk()
                 ->assertJsonStructure(['token', 'user']);
         }
+    }
+
+    public function test_seeder_removes_registration_shell_so_account_check_reads_demo_profile(): void
+    {
+        $amadou = User::query()->where('phone', '+22370000001')->firstOrFail();
+
+        Client::query()->create([
+            'user_id' => $amadou->id,
+            'client_number' => 'CLI-SHELL-AMADOU',
+            'client_type' => ClientType::PhysicalPerson,
+            'kyc_status' => KycStatus::Pending,
+        ]);
+
+        $this->seed(TestUsersSeeder::class);
+
+        $amadou->refresh();
+        $this->assertSame(1, Client::query()->where('user_id', $amadou->id)->count());
+        $this->assertSame('DEMO-1', $amadou->client->client_number);
+
+        Sanctum::actingAs($amadou);
+
+        $this->getJson('/api/profile/account-check')
+            ->assertOk()
+            ->assertJsonPath('monthly_income', 450000)
+            ->assertJsonPath('monthly_expenses', 150000);
     }
 }
