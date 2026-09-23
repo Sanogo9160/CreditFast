@@ -32,13 +32,13 @@ class DemoUserSeeder extends Seeder
         $agentRole = Role::where('name', 'credit_agent')->first();
         $clientRole = Role::where('name', 'client')->first();
 
-        // 1. Staff Users
+        // 1. Staff Users (téléphones hors plage StaffUserSeeder +2237191000x)
         User::updateOrCreate(
             ['email' => 'admin@creditfast.com'],
             [
                 'first_name' => 'Amadou',
                 'last_name' => 'Diallo',
-                'phone' => '+22371910001',
+                'phone' => '+22371810001',
                 'password' => Hash::make('password'),
                 'role_id' => $adminRole?->id,
                 'status' => 'active',
@@ -50,7 +50,7 @@ class DemoUserSeeder extends Seeder
             [
                 'first_name' => 'Fatoumata',
                 'last_name' => 'Traoré',
-                'phone' => '+22371910002',
+                'phone' => '+22371810002',
                 'password' => Hash::make('password'),
                 'role_id' => $analystRole?->id,
                 'status' => 'active',
@@ -65,7 +65,7 @@ class DemoUserSeeder extends Seeder
             [
                 'first_name' => 'Moussa',
                 'last_name' => 'Coulibaly',
-                'phone' => '+22371910003',
+                'phone' => '+22371810003',
                 'password' => Hash::make('password'),
                 'role_id' => $committeeRole?->id,
                 'status' => 'active',
@@ -80,7 +80,7 @@ class DemoUserSeeder extends Seeder
             [
                 'first_name' => 'Ousmane',
                 'last_name' => 'Sow',
-                'phone' => '+22371910004',
+                'phone' => '+22371810004',
                 'password' => Hash::make('password'),
                 'role_id' => $agentRole?->id,
                 'status' => 'active',

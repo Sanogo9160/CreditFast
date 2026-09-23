@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Enums\ClientType;
 use App\Enums\KycStatus;
 use App\Enums\RoleName;
+use App\Models\AccountTransaction;
+use App\Models\Activity;
 use App\Models\Caisse;
 use App\Models\CashDesk;
 use App\Models\Client;
@@ -14,6 +16,7 @@ use App\Models\Guichet;
 use App\Models\KycDocument;
 use App\Models\Role;
 use App\Models\RoutingZone;
+use App\Models\SavingsHistory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +24,10 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Charge les utilisateurs d’essai du magasin local (test-users.md).
  * Mot de passe atelier : demo-local
+ *
+ * Clients scénario crédit (login téléphone) :
+ * - +22370000001 — compte EPARGNE/ACTIF BKO-HAM + zone HAM → create + submit OK
+ * - +22370000002 — aucun compte financier → 422 InstitutionalAccountRequirement à la création
  */
 class TestUsersSeeder extends Seeder
 {
@@ -231,13 +238,16 @@ class TestUsersSeeder extends Seeder
         $clients = [
             [
                 'phone' => '+22370000001',
-                'first_name' => 'Client',
-                'last_name' => 'avec épargne',
+                'first_name' => 'Amadou',
+                'last_name' => 'Koné',
                 'client_number' => 'DEMO-1',
                 'agency_code' => 'BKO-HAM',
                 'zone' => 'HAM',
                 'city' => 'Bamako',
-                'occupation' => 'Commerce',
+                'address' => 'Hamdallaye ACI, Bamako',
+                'occupation' => 'Commerçant',
+                'activity_type' => 'Commerce de détail',
+                'sector' => 'Commerce',
                 'account_number' => 'DEMO-EP-1',
                 'balance' => 500000,
                 'has_cni' => true,
@@ -246,13 +256,16 @@ class TestUsersSeeder extends Seeder
             ],
             [
                 'phone' => '+22370000002',
-                'first_name' => 'Client',
-                'last_name' => 'sans épargne',
+                'first_name' => 'Fatoumata',
+                'last_name' => 'Diallo',
                 'client_number' => 'DEMO-2',
                 'agency_code' => 'BKO-HAM',
                 'zone' => 'HAM',
                 'city' => 'Bamako',
-                'occupation' => 'Commerce',
+                'address' => 'Hamdallaye, Bamako',
+                'occupation' => 'Commerçante',
+                'activity_type' => 'Commerce de détail',
+                'sector' => 'Commerce',
                 'account_number' => null,
                 'balance' => 0,
                 'has_cni' => true,
@@ -267,7 +280,10 @@ class TestUsersSeeder extends Seeder
                 'agency_code' => 'BKO-HAM',
                 'zone' => 'HAM',
                 'city' => 'Bamako',
+                'address' => 'Bamako',
                 'occupation' => 'Commerce',
+                'activity_type' => null,
+                'sector' => null,
                 'account_number' => 'DEMO-EP-3',
                 'balance' => 500000,
                 'has_cni' => false,
@@ -276,13 +292,16 @@ class TestUsersSeeder extends Seeder
             ],
             [
                 'phone' => '+22370000004',
-                'first_name' => 'Client',
-                'last_name' => 'Ségou',
+                'first_name' => 'Ibrahim',
+                'last_name' => 'Touré',
                 'client_number' => 'DEMO-4',
                 'agency_code' => 'SEG-CEN',
                 'zone' => 'SEG',
                 'city' => 'Ségou',
-                'occupation' => 'Commerce',
+                'address' => 'Ségou Centre',
+                'occupation' => 'Commerçant',
+                'activity_type' => 'Commerce de détail',
+                'sector' => 'Commerce',
                 'account_number' => 'DEMO-EP-SEGOU',
                 'balance' => 500000,
                 'has_cni' => true,
@@ -313,7 +332,7 @@ class TestUsersSeeder extends Seeder
                     'user_id' => $user->id,
                     'client_type' => ClientType::PhysicalPerson,
                     'date_of_birth' => '1990-01-15',
-                    'address' => $row['city'],
+                    'address' => $row['address'],
                     'city' => $row['city'],
                     'residential_zone' => $row['zone'],
                     'occupation' => $row['occupation'],
@@ -333,6 +352,23 @@ class TestUsersSeeder extends Seeder
                     'disposable_income' => $row['income'] - $row['expenses'],
                 ]
             );
+
+            if (filled($row['activity_type'])) {
+                Activity::query()->updateOrCreate(
+                    [
+                        'client_id' => $client->id,
+                        'activity_type' => $row['activity_type'],
+                    ],
+                    [
+                        'sector' => $row['sector'],
+                        'description' => $row['activity_type'],
+                        'start_date' => '2021-03-01',
+                        'location' => $row['city'],
+                        'monthly_revenue' => $row['income'],
+                        'status' => 'ACTIVE',
+                    ]
+                );
+            }
 
             if ($row['has_cni']) {
                 KycDocument::query()->updateOrCreate(
@@ -354,36 +390,110 @@ class TestUsersSeeder extends Seeder
             }
 
             if ($row['account_number']) {
-                $caisse = Caisse::query()->where('code', $row['agency_code'])->first();
-                $guichet = $caisse
-                    ? Guichet::query()->where('caisse_id', $caisse->id)->where('code', 'G01')->first()
-                    : null;
-                $cashDesk = $guichet
-                    ? CashDesk::query()->where('guichet_id', $guichet->id)->where('code', 'C01')->first()
-                    : null;
-
-                FinancialAccount::query()->updateOrCreate(
-                    ['account_number' => $row['account_number']],
-                    [
-                        'client_id' => $client->id,
-                        'caisse_id' => $caisse?->id,
-                        'guichet_id' => $guichet?->id,
-                        'cash_desk_id' => $cashDesk?->id,
-                        'account_type' => 'EPARGNE',
-                        'balance' => $row['balance'],
-                        'available_balance' => $row['balance'],
-                        'blocked_balance' => 0,
-                        'agency_code' => $row['agency_code'],
-                        'opened_at' => now()->subYear()->toDateString(),
-                        'status' => 'ACTIF',
-                    ]
-                );
+                $this->seedActiveSavingsAccount($client, $row);
             } else {
                 FinancialAccount::query()
                     ->where('client_id', $client->id)
-                    ->where('account_number', 'like', 'DEMO-EP-%')
+                    ->delete();
+
+                SavingsHistory::query()
+                    ->where('client_id', $client->id)
                     ->delete();
             }
         }
+    }
+
+    /**
+     * @param  array{
+     *     agency_code: string,
+     *     account_number: string,
+     *     balance: float|int,
+     * }  $row
+     */
+    protected function seedActiveSavingsAccount(Client $client, array $row): void
+    {
+        $caisse = Caisse::query()->where('code', $row['agency_code'])->first();
+        $guichet = $caisse
+            ? Guichet::query()->where('caisse_id', $caisse->id)->where('code', 'G01')->first()
+            : null;
+        $cashDesk = $guichet
+            ? CashDesk::query()->where('guichet_id', $guichet->id)->where('code', 'C01')->first()
+            : null;
+
+        $balance = (float) $row['balance'];
+
+        $account = FinancialAccount::query()->updateOrCreate(
+            ['account_number' => $row['account_number']],
+            [
+                'client_id' => $client->id,
+                'caisse_id' => $caisse?->id,
+                'guichet_id' => $guichet?->id,
+                'cash_desk_id' => $cashDesk?->id,
+                'account_type' => 'EPARGNE',
+                'balance' => $balance,
+                'available_balance' => $balance,
+                'blocked_balance' => 0,
+                'agency_code' => $row['agency_code'],
+                'opened_at' => now()->subYear()->toDateString(),
+                'status' => 'ACTIF',
+            ]
+        );
+
+        SavingsHistory::query()->updateOrCreate(
+            [
+                'client_id' => $client->id,
+                'account_id' => $account->id,
+            ],
+            [
+                'period_start' => now()->subMonths(6)->toDateString(),
+                'period_end' => now()->toDateString(),
+                'total_deposits' => $balance * 1.5,
+                'total_withdrawals' => $balance * 0.5,
+                'deposit_count' => 10,
+                'withdrawal_count' => 4,
+                'average_balance' => $balance * 0.9,
+                'closing_balance' => $balance,
+            ]
+        );
+
+        AccountTransaction::query()->updateOrCreate(
+            [
+                'account_id' => $account->id,
+                'reference' => 'DEMO-DEP-'.$row['account_number'],
+            ],
+            [
+                'transaction_type' => 'DEPOSIT',
+                'type' => 'CREDIT',
+                'direction' => 'IN',
+                'amount' => 75000,
+                'transaction_date' => now()->subMonths(2),
+                'booked_at' => now()->subMonths(2),
+                'label' => 'Versement épargne',
+                'description' => 'Versement épargne atelier',
+                'status' => 'COMPLETED',
+                'channel' => 'AGENCY',
+                'balance_after' => $balance,
+            ]
+        );
+
+        AccountTransaction::query()->updateOrCreate(
+            [
+                'account_id' => $account->id,
+                'reference' => 'DEMO-DEP2-'.$row['account_number'],
+            ],
+            [
+                'transaction_type' => 'DEPOSIT',
+                'type' => 'CREDIT',
+                'direction' => 'IN',
+                'amount' => 50000,
+                'transaction_date' => now()->subMonth(),
+                'booked_at' => now()->subMonth(),
+                'label' => 'Versement épargne',
+                'description' => 'Versement épargne atelier',
+                'status' => 'COMPLETED',
+                'channel' => 'AGENCY',
+                'balance_after' => $balance,
+            ]
+        );
     }
 }
